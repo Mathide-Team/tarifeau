@@ -20,6 +20,16 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
 3. **Paramètres → Appareils et services → Ajouter une intégration → tarifeau**.
 
+## Décrire un tarif
+
+Un tarif est un fichier YAML, rangé dans `custom_components/tarifeau/tarifs/`. Le format est documenté en tête de `modele.py` :
+
+- une ou plusieurs **périodes** (dates d'effet), chacune avec l'URL de la délibération ;
+- pour chaque **service** (`eau_potable`, `assainissement`, `autre`) : son taux de TVA, ses abonnements (€ HT/an) et ses composantes au m³ (€ HT/m³), éventuellement par **tranches annuelles** ;
+- les **redevances** de l'agence de l'eau sont des composantes marquées `redevance: true`.
+
+Préréglage fourni : **Grand Besançon Métropole (régie) 2026**. Les tests vérifient qu'il redonne la facture type officielle : 484,23 € TTC pour 120 m³ (248,83 € d'eau potable et 235,40 € d'assainissement).
+
 ## Développement
 
 ```bash

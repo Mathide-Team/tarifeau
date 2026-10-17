@@ -1,0 +1,47 @@
+# Grand Besançon Métropole, service en régie (Besançon et la plupart des communes).
+# Tarifs délibérés le 11/12/2025, applicables au 01/01/2026, repris dans le RPQS 2025
+# (conseil communautaire du 24/09/2026). Facture type 2026 pour 120 m³ :
+# eau potable 248,83 € TTC + assainissement 235,40 € TTC = 484,23 € TTC.
+# Les 3 premiers m³ annuels sont gratuits (part variable) ; les redevances
+# de l'agence de l'eau s'appliquent à tout le volume.
+id: grand_besancon_regie
+nom: Grand Besançon Métropole (régie)
+facturation: semestrielle
+tranches: cumul_annuel
+periodes:
+  - debut: 2026-01-01
+    fin: 2026-12-31
+    source: https://datasets.grandbesancon.fr/fichiers/delibs/grandBesancon/conseilCommunautaire/2026/20260924/0000C9DA.PDF
+    date_source: 2025-12-11
+    services:
+      eau_potable:
+        tva: 5.5
+        abonnements:
+          - nom: Abonnement eau potable
+            montant_ht_an: 15.00
+        composantes:
+          - nom: Part de la collectivité
+            tranches:
+              - {jusqua: 3, prix_ht: 0}
+              - {jusqua: 100, prix_ht: 1.38}
+              - {prix_ht: 1.44}
+          - nom: Redevance préservation de la ressource
+            prix_ht: 0.065
+            redevance: true
+          - nom: Redevance consommation d'eau potable
+            prix_ht: 0.39
+            redevance: true
+          - nom: Redevance performance des réseaux d'eau potable
+            prix_ht: 0.03
+            redevance: true
+      assainissement:
+        tva: 10
+        abonnements:
+          - nom: Abonnement assainissement
+            montant_ht_an: 10.00
+        composantes:
+          - nom: Part de la collectivité
+            prix_ht: 1.66
+          - nom: Redevance performance des systèmes d'assainissement collectif
+            prix_ht: 0.04
+            redevance: true

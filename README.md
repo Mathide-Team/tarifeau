@@ -14,7 +14,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 
 ## Installation (HACS)
 
-> En cours : la configuration est complète, les capteurs arrivent avec l'issue #5.
+> En cours : configuration et capteurs disponibles ; le tableau de bord prêt à coller arrive avec l'issue #6.
 
 1. HACS → menu ⋮ → **Dépôts personnalisés** → `https://github.com/Mathide-Team/tarifeau`, catégorie **Intégration**.
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
@@ -24,6 +24,23 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
    3. la **dernière relève** : facturation annuelle ou semestrielle, date et index, repris de ta dernière facture.
 
    Ensuite, **Configurer** permet de changer de tarif ou de saisir une nouvelle relève à chaque facture.
+
+## Capteurs
+
+Un appareil « Facture d'eau » par entrée, recalculé à chaque nouvel index (et à minuit) :
+
+| Capteur | Unité | Usage |
+|---|---|---|
+| Coût depuis la dernière relève | € TTC | détail HT, TVA et TTC par service et ligne par ligne en attributs, avec le tarif et sa source |
+| Estimation de la prochaine facture | € TTC | projection à la fin de la période (6 ou 12 mois après la relève), au rythme actuel |
+| Prix marginal | €/m³ TTC | prix du prochain m³ selon la tranche : **entité de prix pour le tableau de bord Énergie** (Eau) |
+| Prix moyen | €/m³ TTC | total / volume, abonnements compris |
+| Volume depuis la dernière relève | m³ | |
+| Tranche actuelle | 1, 2, 3… | attribut `volume_restant` avant la tranche suivante |
+
+Les capteurs gardent leur dernière valeur si l'index devient indisponible, et la retrouvent au redémarrage. Si le tarif de l'année n'est pas encore dans le préréglage, le dernier tarif connu est prolongé : l'attribut `tarif_prolonge` passe alors à `true` et un avertissement est écrit dans le journal.
+
+**Tableau de bord Énergie** : Paramètres → Tableaux de bord → Énergie → Consommation d'eau → ajouter le capteur d'index, puis « Utiliser une entité avec le prix actuel » → **Prix marginal**.
 
 ## Décrire un tarif
 

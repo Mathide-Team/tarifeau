@@ -347,3 +347,21 @@ def sans_assainissement(tarif: Tarif) -> Tarif:
         for p in tarif.periodes
     )
     return Tarif(tarif.id, tarif.nom, periodes, tarif.facturation, tarif.tranches)
+
+
+def prolonger(tarif: Tarif, du: date, au: date) -> tuple[Tarif, bool]:
+    """Tarif utilisable sur ``[du, au[`` même hors des dates connues.
+
+    Le premier tarif est étendu avant son début et le dernier n'a plus de fin : quand la
+    délibération de l'année n'est pas encore saisie, on garde le dernier tarif connu.
+    Renvoie aussi ``True`` si ``[du, au[`` sort des dates connues.
+    """
+    periodes = list(tarif.periodes)
+    premier, dernier = periodes[0], periodes[-1]
+    hors = du < premier.debut or (dernier.fin is not None and au - timedelta(days=1) > dernier.fin)
+    periodes[0] = premier = Periode(
+        min(du, premier.debut), premier.fin, premier.services, premier.source, premier.date_source
+    )
+    dernier = periodes[-1]
+    periodes[-1] = Periode(dernier.debut, None, dernier.services, dernier.source, dernier.date_source)
+    return Tarif(tarif.id, tarif.nom, tuple(periodes), tarif.facturation, tarif.tranches), hors

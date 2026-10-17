@@ -236,3 +236,14 @@ def test_prix_fixe_et_sans_assainissement() -> None:
     eau_seule = sans_assainissement(charger_tarif("grand_besancon_regie"))
     assert [s.code for s in eau_seule.periodes[0].services] == ["eau_potable"]
     assert facture_sur_un_an(eau_seule.periodes[0], 120).total_ttc == Decimal("248.83")
+
+
+def test_prolonger() -> None:
+    from custom_components.tarifeau.modele import prolonger
+
+    tarif = charger_tarif("grand_besancon_regie")
+    prolonge, hors = prolonger(tarif, date(2025, 7, 1), date(2026, 1, 1))
+    assert hors
+    assert (prolonge.periodes[0].debut, prolonge.periodes[-1].fin) == (date(2025, 7, 1), None)
+    assert prolonger(tarif, date(2026, 1, 1), date(2027, 1, 1))[1] is False  # 31/12/2026 compris
+    assert prolonger(tarif, date(2026, 7, 1), date(2027, 1, 2))[1] is True

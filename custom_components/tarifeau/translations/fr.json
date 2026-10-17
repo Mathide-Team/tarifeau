@@ -39,6 +39,13 @@
           "date_releve": "Date de la dernière relève",
           "index_releve": "Index à la dernière relève"
         }
+      },
+      "entite_prix": {
+        "title": "Entité de prix",
+        "description": "Choisis un capteur de prix au m³, par exemple « Prix total » de l'intégration HydroTarif (données SISPEA de ta commune).\n\nAttention : ce prix est un **prix moyen** calculé sur une facture de 120 m³ par an, abonnement compris. Le calcul n'a ni tranches ni abonnement séparé, et le « prix du prochain m³ » vaut ce prix moyen, pas le vrai prix marginal. Un préréglage de ta collectivité est plus juste s'il existe.",
+        "data": {
+          "entite_prix": "Capteur de prix (€/m³)"
+        }
       }
     },
     "error": {
@@ -46,7 +53,9 @@
       "unite": "L'index doit être en m³ ou en L.",
       "state_class": "Le capteur doit être un index cumulé (state_class total_increasing ou total).",
       "index_incoherent": "Cet index dépasse l'index actuel du compteur.",
-      "date_future": "La date est dans le futur."
+      "date_future": "La date est dans le futur.",
+      "unite_prix": "Le capteur doit être un prix au m³ (unité €/m³).",
+      "prix_indisponible": "Le prix de ce capteur est indisponible pour l'instant."
     },
     "abort": {
       "already_configured": "Ce capteur a déjà sa facture."
@@ -91,6 +100,13 @@
           "date_releve": "Date de la dernière relève",
           "index_releve": "Index à la dernière relève"
         }
+      },
+      "entite_prix": {
+        "title": "Entité de prix",
+        "description": "Choisis un capteur de prix au m³, par exemple « Prix total » de l'intégration HydroTarif (données SISPEA de ta commune).\n\nAttention : ce prix est un **prix moyen** calculé sur une facture de 120 m³ par an, abonnement compris. Le calcul n'a ni tranches ni abonnement séparé, et le « prix du prochain m³ » vaut ce prix moyen, pas le vrai prix marginal. Un préréglage de ta collectivité est plus juste s'il existe.",
+        "data": {
+          "entite_prix": "Capteur de prix (€/m³)"
+        }
       }
     },
     "error": {
@@ -98,14 +114,17 @@
       "unite": "L'index doit être en m³ ou en L.",
       "state_class": "Le capteur doit être un index cumulé (state_class total_increasing ou total).",
       "index_incoherent": "Cet index dépasse l'index actuel du compteur.",
-      "date_future": "La date est dans le futur."
+      "date_future": "La date est dans le futur.",
+      "unite_prix": "Le capteur doit être un prix au m³ (unité €/m³).",
+      "prix_indisponible": "Le prix de ce capteur est indisponible pour l'instant."
     }
   },
   "selector": {
     "source_tarif": {
       "options": {
         "prereglage": "Tarif d'une collectivité",
-        "prix_fixe": "Prix fixe au m³"
+        "prix_fixe": "Prix fixe au m³",
+        "entite_prix": "Entité de prix (HydroTarif…)"
       }
     },
     "facturation": {

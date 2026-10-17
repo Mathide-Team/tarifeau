@@ -39,6 +39,13 @@
           "date_releve": "Date of the last reading",
           "index_releve": "Index at the last reading"
         }
+      },
+      "entite_prix": {
+        "title": "Price entity",
+        "description": "Pick a price-per-m³ sensor, for example \"Total price\" from the HydroTarif integration (SISPEA data for your municipality).\n\nNote: this is an **average price** computed on a 120 m³/year bill, standing charges included. There are no tiers and no separate standing charge, and the \"next m³ price\" equals this average price, not the true marginal price. A preset for your water authority is more accurate when available.",
+        "data": {
+          "entite_prix": "Price sensor (€/m³)"
+        }
       }
     },
     "error": {
@@ -46,7 +53,9 @@
       "unite": "The index must be in m³ or L.",
       "state_class": "The sensor must be a cumulative index (state_class total_increasing or total).",
       "index_incoherent": "This index is above the current meter index.",
-      "date_future": "The date is in the future."
+      "date_future": "The date is in the future.",
+      "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
+      "prix_indisponible": "This sensor's price is currently unavailable."
     },
     "abort": {
       "already_configured": "This sensor already has a bill."
@@ -91,6 +100,13 @@
           "date_releve": "Date of the last reading",
           "index_releve": "Index at the last reading"
         }
+      },
+      "entite_prix": {
+        "title": "Price entity",
+        "description": "Pick a price-per-m³ sensor, for example \"Total price\" from the HydroTarif integration (SISPEA data for your municipality).\n\nNote: this is an **average price** computed on a 120 m³/year bill, standing charges included. There are no tiers and no separate standing charge, and the \"next m³ price\" equals this average price, not the true marginal price. A preset for your water authority is more accurate when available.",
+        "data": {
+          "entite_prix": "Price sensor (€/m³)"
+        }
       }
     },
     "error": {
@@ -98,14 +114,17 @@
       "unite": "The index must be in m³ or L.",
       "state_class": "The sensor must be a cumulative index (state_class total_increasing or total).",
       "index_incoherent": "This index is above the current meter index.",
-      "date_future": "The date is in the future."
+      "date_future": "The date is in the future.",
+      "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
+      "prix_indisponible": "This sensor's price is currently unavailable."
     }
   },
   "selector": {
     "source_tarif": {
       "options": {
         "prereglage": "Local authority tariff",
-        "prix_fixe": "Fixed price per m³"
+        "prix_fixe": "Fixed price per m³",
+        "entite_prix": "Price entity (HydroTarif…)"
       }
     },
     "facturation": {

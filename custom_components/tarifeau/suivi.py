@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Any
 
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT
-from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
 from homeassistant.helpers.event import async_track_state_change_event, async_track_time_change
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -24,12 +24,14 @@ from .calcul import Facture, Marginal, arrondi_euros, consommation, facture_peri
 from .const import (
     CONF_ASSAINISSEMENT,
     CONF_DATE_RELEVE,
+    CONF_ENTITE_PRIX,
     CONF_FACTURATION,
     CONF_INDEX,
     CONF_INDEX_RELEVE,
     CONF_PREREGLAGE,
     CONF_PRIX_FIXE,
     CONF_SOURCE,
+    SOURCE_ENTITE_PRIX,
     SOURCE_PREREGLAGE,
     UNITES_INDEX,
 )
@@ -51,8 +53,39 @@ def _ttc(facture: Facture) -> Decimal:
     return sum((s.ttc for s in facture.services), Decimal(0))
 
 
-def charger_tarif_config(config: dict[str, Any]) -> Tarif:
-    """Tarif de l'entrée (lecture de fichier : à appeler hors de la boucle d'événements)."""
+def unite_prix_valide(unite: str | None) -> bool:
+    """Unité d'un capteur de prix au m³ : « €/m³ », « EUR/m³ »…"""
+    return bool(unite) and unite.replace(" ", "").endswith("/m³")
+
+
+def prix_entite(etat: State | None) -> Decimal | None:
+    """Prix au m³ lu sur un capteur (HydroTarif…), ``None`` s'il est indisponible ou invalide."""
+    if etat is None or not unite_prix_valide(etat.attributes.get(ATTR_UNIT_OF_MEASUREMENT)):
+        return None
+    try:
+        prix = Decimal(etat.state)
+    except ArithmeticError:
+        return None
+    return prix if prix.is_finite() and prix >= 0 else None
+
+
+def tarif_entite(etat: State, prix: Decimal) -> Tarif:
+    """Tarif « prix moyen » construit d'après un capteur de prix (HydroTarif : D102.0 de SISPEA)."""
+    source = etat.attributes.get("water_source_url") or f"entité {etat.entity_id}"
+    annee = etat.attributes.get("water_data_year")
+    # SISPEA, année N : tarif en vigueur au 1er janvier N+1 (convention de HydroTarif).
+    date_source = date(annee + 1, 1, 1) if isinstance(annee, int) else None
+    nom = f"Prix moyen {prix} €/m³ ({etat.name})"
+    return tarif_prix_fixe(prix, nom=nom, source=source, date_source=date_source)
+
+
+def charger_tarif_config(config: dict[str, Any]) -> Tarif | None:
+    """Tarif de l'entrée (lecture de fichier : à appeler hors de la boucle d'événements).
+
+    ``None`` pour la source « entité de prix » : le tarif est lu sur l'entité à chaque calcul.
+    """
+    if config.get(CONF_SOURCE) == SOURCE_ENTITE_PRIX:
+        return None
     if config.get(CONF_SOURCE) == SOURCE_PREREGLAGE:
         tarif = charger_tarif(config[CONF_PREREGLAGE])
         return tarif if config.get(CONF_ASSAINISSEMENT, True) else sans_assainissement(tarif)
@@ -82,13 +115,18 @@ class SuiviFacture:
 
     hass: HomeAssistant
     config: dict[str, Any]
-    tarif: Tarif
+    tarif: Tarif | None  # None : source « entité de prix » dont le prix n'est pas encore connu
     etat: Etat | None = None
     _ecouteurs: list[Callable[[], None]] = field(default_factory=list)
     _desabonnements: list[Callable[[], None]] = field(default_factory=list)
     _averti: bool = False
     reperes: dict[str, str] = field(default_factory=dict)  # index au début du jour et du mois
     store: Store | None = None
+
+    @property
+    def prix_moyen_seul(self) -> bool:
+        """Source « entité de prix » : prix moyen abonnement compris, sans tranches."""
+        return self.config.get(CONF_SOURCE) == SOURCE_ENTITE_PRIX
 
     @property
     def date_releve(self) -> date:
@@ -110,8 +148,19 @@ class SuiviFacture:
         except ArithmeticError:
             return None
 
+    def lire_tarif(self) -> None:
+        """Source « entité de prix » : reconstruit le tarif si le prix a changé ; sinon garde le dernier."""
+        if not self.prix_moyen_seul:
+            return
+        etat = self.hass.states.get(self.config[CONF_ENTITE_PRIX])
+        prix = prix_entite(etat)
+        if etat is None or prix is None:
+            return
+        self.tarif = tarif_entite(etat, prix)
+
     def calculer(self, index: Decimal, jour: date, reperes: dict[str, str] | None = None) -> Etat:
         """Facture depuis la relève jusqu'à ``jour`` inclus, et projection à la fin de la période."""
+        assert self.tarif is not None
         releve, fin = self.date_releve, self.fin_periode
         volume = consommation(Decimal(str(self.config[CONF_INDEX_RELEVE])), index)
         au = max(jour + timedelta(days=1), releve + timedelta(days=1))
@@ -179,8 +228,9 @@ class SuiviFacture:
     @callback
     def rafraichir(self, *_: Any) -> None:
         """Recalcule si l'index est lisible ; sinon garde le dernier état."""
+        self.lire_tarif()
         index = self.lire_index()
-        if index is not None:
+        if index is not None and self.tarif is not None:
             jour = dt_util.now().date()
             self._avancer_reperes(index, jour)
             self.etat = self.calculer(index, jour, self.reperes)
@@ -218,8 +268,11 @@ class SuiviFacture:
         def _sur_index(event: Event[EventStateChangedData]) -> None:
             self.rafraichir()
 
+        suivies = [self.config[CONF_INDEX]]
+        if self.prix_moyen_seul:
+            suivies.append(self.config[CONF_ENTITE_PRIX])
         self._desabonnements += [
-            async_track_state_change_event(self.hass, [self.config[CONF_INDEX]], _sur_index),
+            async_track_state_change_event(self.hass, suivies, _sur_index),
             async_track_time_change(self.hass, self.rafraichir, hour=0, minute=0, second=5),
         ]
         self.rafraichir()

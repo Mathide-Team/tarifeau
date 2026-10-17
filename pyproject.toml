@@ -19,7 +19,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 110
 target-version = "py313"
-extend-exclude = ["scripts"]  # scripts du socle (modele-depot), gardés tels quels
+extend-exclude = ["scripts/check_branch_protection.py"]  # script du socle (modele-depot), gardé tel quel
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
@@ -29,3 +29,6 @@ source = ["custom_components/tarifeau"]
 
 [tool.uv]
 package = false  # intégration HA, pas un paquet Python publié
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/generer_tableau_de_bord.py" = ["E501"]  # lignes du tableau Markdown (modèle Jinja)

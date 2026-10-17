@@ -30,6 +30,17 @@ Un tarif est un fichier YAML, rangé dans `custom_components/tarifeau/tarifs/`. 
 
 Préréglage fourni : **Grand Besançon Métropole (régie) 2026**. Les tests vérifient qu'il redonne la facture type officielle : 484,23 € TTC pour 120 m³ (248,83 € d'eau potable et 235,40 € d'assainissement).
 
+## Comment la facture est calculée
+
+Le moteur (`custom_components/tarifeau/calcul.py`, Python pur) reprend les règles des factures :
+
+- la période facturée est découpée au 1er janvier et à chaque changement de tarif. Le volume est réparti **au prorata des jours** ;
+- l'**abonnement** est proratisé au jour près (365 ou 366 jours) ;
+- les **tranches** sont annuelles. Elles s'appliquent au volume cumulé depuis le 1er janvier (`cumul_annuel`, par défaut), ou avec des seuils proratisés selon la durée de la facture (`prorata`). La gratuité des premiers m³ est une tranche à 0 € ;
+- on calcule le HT par ligne, la TVA **par service** (5,5 % pour l'eau potable, 10 % pour l'assainissement), puis le TTC. Seul le total est arrondi au centime ;
+- sorties pour les capteurs : **prix marginal** du prochain m³ (TTC), **prix moyen**, tranche actuelle et volume restant avant la tranche suivante ;
+- si l'index revient en arrière, le compteur est considéré comme remplacé.
+
 ## Développement
 
 ```bash

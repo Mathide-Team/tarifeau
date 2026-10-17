@@ -69,15 +69,30 @@ class Composante:
     redevance: bool = False
     source: str | None = None
 
-    def volumes_par_tranche(self, volume: Decimal) -> list[tuple[Tranche, Decimal]]:
-        """Répartit un volume annuel (m³) entre les tranches, dans l'ordre."""
+    def volumes_par_tranche(
+        self, volume: Decimal, depuis: Decimal = Decimal(0), facteur: Decimal = Decimal(1)
+    ) -> list[tuple[Tranche, Decimal]]:
+        """Répartit ``volume`` m³ entre les tranches, dans l'ordre.
+
+        ``depuis`` : volume déjà consommé dans l'année tarifaire (tranches cumulées).
+        ``facteur`` : coefficient appliqué aux seuils annuels (tranches proratisées).
+        """
+        debut, fin = depuis, depuis + volume
         resultat, borne_basse = [], Decimal(0)
         for tranche in self.tranches:
-            haut = volume if tranche.jusqua is None else min(volume, tranche.jusqua)
-            resultat.append((tranche, max(haut - borne_basse, Decimal(0))))
-            if tranche.jusqua is not None:
-                borne_basse = tranche.jusqua
+            borne_haute = None if tranche.jusqua is None else tranche.jusqua * facteur
+            haut = fin if borne_haute is None else min(fin, borne_haute)
+            resultat.append((tranche, max(haut - max(debut, borne_basse), Decimal(0))))
+            if borne_haute is not None:
+                borne_basse = borne_haute
         return resultat
+
+    def tranche_au(self, cumul: Decimal, facteur: Decimal = Decimal(1)) -> tuple[int, Decimal | None]:
+        """Indice de la tranche du prochain m³ après ``cumul`` m³, et volume restant avant la suivante."""
+        for i, tranche in enumerate(self.tranches):
+            if tranche.jusqua is None or cumul < tranche.jusqua * facteur:
+                return i, None if tranche.jusqua is None else tranche.jusqua * facteur - cumul
+        raise AssertionError("dernière tranche sans borne")  # pragma: no cover  (garanti par la validation)
 
 
 @dataclass(frozen=True)

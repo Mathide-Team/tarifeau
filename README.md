@@ -12,6 +12,30 @@ Intégration Home Assistant qui calcule **ta facture d'eau réelle** (France) à
 
 tarifeau complète ces intégrations sans les refaire. Il peut se servir de HydroTarif comme source de prix par défaut.
 
+## Installation (HACS)
+
+> Squelette (issue #1) : l'intégration s'installe et apparaît dans **Ajouter une intégration**, sans capteur pour l'instant.
+
+1. HACS → menu ⋮ → **Dépôts personnalisés** → `https://github.com/Mathide-Team/tarifeau`, catégorie **Intégration**.
+2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
+3. **Paramètres → Appareils et services → Ajouter une intégration → tarifeau**.
+
+## Développement
+
+```bash
+uv run --only-group lint ruff check . && uv run --only-group lint ruff format --check .
+uv run -p 3.13 --only-group test pytest --cov     # Home Assistant 2026.2.3 (pytest-homeassistant-custom-component)
+```
+
+| Dossier | Rôle |
+|---|---|
+| `custom_components/tarifeau/` | L'intégration (seul dossier installé par HACS) |
+| `custom_components/tarifeau/calcul.py` | Moteur de calcul en Python pur, sans Home Assistant |
+| `custom_components/tarifeau/brand/` | Icône (256 et 512 px) |
+| `tests/` | Tests pytest |
+
+La CI lance aussi **hassfest** et la **validation HACS** (job « Validation Home Assistant »). Ce sont des actions Docker : elles tournent sur `ubuntu-latest` tant que la variable `RUNS_ON_DOCKER` n'est pas définie.
+
 ## Socle qualité Mathide-Team
 
 Ce dépôt est créé depuis [`modele-depot`](https://github.com/Mathide-Team/modele-depot). Il suit le [socle qualité de l'équipe](https://github.com/Mathide-Team/.github/blob/main/SOCLE.md) :

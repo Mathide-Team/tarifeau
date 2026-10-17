@@ -1,33 +1,264 @@
-"""Configuration depuis l'interface (squelette, issue #1).
+"""Configuration depuis l'interface (issue #4).
 
-Une seule étape : le nom de l'entrée. Le capteur d'index, la source du tarif
-et la période de facturation viendront avec l'issue #4.
+Étapes : capteur d'index → source du tarif → préréglage ou prix fixe → dernière relève.
+Les options permettent ensuite de changer de tarif ou de saisir une nouvelle relève.
+Une entrée par capteur d'index : par exemple une par voisin du compteur wM-Bus.
 """
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
+from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import selector
 
-from .const import CONF_NOM, DOMAIN, NOM_PAR_DEFAUT
+from .const import (
+    CONF_ASSAINISSEMENT,
+    CONF_DATE_RELEVE,
+    CONF_FACTURATION,
+    CONF_INDEX,
+    CONF_INDEX_RELEVE,
+    CONF_NOM,
+    CONF_PREREGLAGE,
+    CONF_PRIX_FIXE,
+    CONF_SOURCE,
+    DOMAIN,
+    FACTURATIONS,
+    NOM_PAR_DEFAUT,
+    SOURCE_PREREGLAGE,
+    SOURCES,
+    STATE_CLASSES_INDEX,
+    UNITES_INDEX,
+)
+from .modele import charger_tarif, prereglages
 
 
-class TarifeauConfigFlow(ConfigFlow, domain=DOMAIN):
+def index_actuel_m3(hass: HomeAssistant, entity_id: str) -> float | None:
+    """Index actuel du capteur, converti en m³. ``None`` si indisponible ou non numérique."""
+    etat = hass.states.get(entity_id)
+    if etat is None:
+        return None
+    diviseur = UNITES_INDEX.get(etat.attributes.get(ATTR_UNIT_OF_MEASUREMENT, ""))
+    try:
+        return float(etat.state) / diviseur if diviseur else None
+    except ValueError:
+        return None
+
+
+def _verifier_capteur(hass: HomeAssistant, entity_id: str) -> str | None:
+    """Code d'erreur si le capteur ne convient pas comme index, sinon ``None``."""
+    etat = hass.states.get(entity_id)
+    if etat is None:
+        return "capteur_absent"
+    if etat.attributes.get(ATTR_UNIT_OF_MEASUREMENT) not in UNITES_INDEX:
+        return "unite"
+    if etat.attributes.get("state_class") not in STATE_CLASSES_INDEX:
+        return "state_class"
+    return None
+
+
+async def _noms_prereglages(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
+    def lire() -> list[selector.SelectOptionDict]:
+        return [selector.SelectOptionDict(value=i, label=charger_tarif(i).nom) for i in prereglages()]
+
+    return await hass.async_add_executor_job(lire)
+
+
+def _schema_source(defaut: str = SOURCE_PREREGLAGE) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_SOURCE, default=defaut): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=list(SOURCES), translation_key=CONF_SOURCE)
+            )
+        }
+    )
+
+
+def _schema_prereglage(options: list[selector.SelectOptionDict], actuel: dict[str, Any]) -> vol.Schema:
+    defaut = actuel.get(CONF_PREREGLAGE, options[0]["value"])
+    return vol.Schema(
+        {
+            vol.Required(CONF_PREREGLAGE, default=defaut): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=options)
+            ),
+            vol.Required(CONF_ASSAINISSEMENT, default=actuel.get(CONF_ASSAINISSEMENT, True)): bool,
+        }
+    )
+
+
+def _schema_prix_fixe(actuel: dict[str, Any]) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_PRIX_FIXE, default=actuel.get(CONF_PRIX_FIXE, 4.0)): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=50,
+                    step="any",
+                    unit_of_measurement="€/m³",
+                    mode=selector.NumberSelectorMode.BOX,
+                )
+            )
+        }
+    )
+
+
+def _schema_releve(actuel: dict[str, Any], index_m3: float | None) -> vol.Schema:
+    index_defaut = actuel.get(CONF_INDEX_RELEVE, round(index_m3, 3) if index_m3 is not None else 0)
+    return vol.Schema(
+        {
+            vol.Required(CONF_FACTURATION, default=actuel.get(CONF_FACTURATION, "semestrielle")): (
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=list(FACTURATIONS), translation_key=CONF_FACTURATION
+                    )
+                )
+            ),
+            vol.Required(CONF_DATE_RELEVE, default=actuel.get(CONF_DATE_RELEVE, date.today().isoformat())): (
+                selector.DateSelector()
+            ),
+            vol.Required(CONF_INDEX_RELEVE, default=index_defaut): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, step="any", unit_of_measurement="m³", mode=selector.NumberSelectorMode.BOX
+                )
+            ),
+        }
+    )
+
+
+def _verifier_releve(hass: HomeAssistant, entity_id: str, saisie: dict[str, Any]) -> dict[str, str]:
+    erreurs: dict[str, str] = {}
+    if date.fromisoformat(saisie[CONF_DATE_RELEVE]) > date.today():
+        erreurs[CONF_DATE_RELEVE] = "date_future"
+    index_m3 = index_actuel_m3(hass, entity_id)
+    if index_m3 is not None and saisie[CONF_INDEX_RELEVE] > index_m3 + 1e-6:
+        erreurs[CONF_INDEX_RELEVE] = "index_incoherent"
+    return erreurs
+
+
+class _EtapesTarif:
+    """Étapes communes à la configuration et aux options : tarif, puis relève."""
+
+    hass: HomeAssistant
+    _donnees: dict[str, Any]
+
+    def _actuel(self) -> dict[str, Any]:
+        return self._donnees
+
+    def _index_entity(self) -> str:
+        return self._donnees[CONF_INDEX]
+
+    async def async_step_tarif(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Source du tarif."""
+        if user_input is not None:
+            self._donnees[CONF_SOURCE] = user_input[CONF_SOURCE]
+            if user_input[CONF_SOURCE] == SOURCE_PREREGLAGE:
+                return await self.async_step_prereglage()
+            return await self.async_step_prix_fixe()
+        return self.async_show_form(
+            step_id="tarif", data_schema=_schema_source(self._actuel().get(CONF_SOURCE, SOURCE_PREREGLAGE))
+        )
+
+    async def async_step_prereglage(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Choix d'un tarif de collectivité."""
+        if user_input is not None:
+            self._donnees.update(user_input)
+            self._donnees.pop(CONF_PRIX_FIXE, None)
+            return await self._apres_tarif()
+        options = await _noms_prereglages(self.hass)
+        return self.async_show_form(
+            step_id="prereglage", data_schema=_schema_prereglage(options, self._actuel())
+        )
+
+    async def async_step_prix_fixe(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Prix TTC au m³, abonnement compris."""
+        if user_input is not None:
+            self._donnees.update(user_input)
+            self._donnees.pop(CONF_PREREGLAGE, None)
+            self._donnees.pop(CONF_ASSAINISSEMENT, None)
+            return await self._apres_tarif()
+        return self.async_show_form(step_id="prix_fixe", data_schema=_schema_prix_fixe(self._actuel()))
+
+    async def async_step_releve(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Date et index de la dernière relève (repris de la facture)."""
+        erreurs: dict[str, str] = {}
+        if user_input is not None:
+            erreurs = _verifier_releve(self.hass, self._index_entity(), user_input)
+            if not erreurs:
+                self._donnees.update(user_input)
+                return self._terminer()
+        actuel = {**self._actuel(), **(user_input or {})}
+        schema = _schema_releve(actuel, index_actuel_m3(self.hass, self._index_entity()))
+        return self.async_show_form(step_id="releve", data_schema=schema, errors=erreurs)
+
+    async def _apres_tarif(self) -> ConfigFlowResult:
+        return await self.async_step_releve()
+
+    def _terminer(self) -> ConfigFlowResult:
+        raise NotImplementedError  # pragma: no cover
+
+
+class TarifeauConfigFlow(_EtapesTarif, ConfigFlow, domain=DOMAIN):
     """Assistant « Ajouter une intégration »."""
 
     VERSION = 1
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Étape unique : nom de la facture."""
-        if user_input is not None:
-            nom = user_input[CONF_NOM].strip() or NOM_PAR_DEFAUT
-            await self.async_set_unique_id(nom.casefold())
-            self._abort_if_unique_id_configured()
-            return self.async_create_entry(title=nom, data={CONF_NOM: nom})
+    def __init__(self) -> None:
+        self._donnees: dict[str, Any] = {}
 
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_NOM, default=NOM_PAR_DEFAUT): str}),
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Nom de la facture et capteur d'index."""
+        erreurs: dict[str, str] = {}
+        if user_input is not None:
+            erreur = _verifier_capteur(self.hass, user_input[CONF_INDEX])
+            if erreur:
+                erreurs[CONF_INDEX] = erreur
+            else:
+                await self.async_set_unique_id(user_input[CONF_INDEX])
+                self._abort_if_unique_id_configured()
+                nom = user_input[CONF_NOM].strip() or NOM_PAR_DEFAUT
+                self._donnees = {CONF_NOM: nom, CONF_INDEX: user_input[CONF_INDEX]}
+                return await self.async_step_tarif()
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_NOM, default=NOM_PAR_DEFAUT): str,
+                vol.Required(CONF_INDEX): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+            }
         )
+        if user_input is not None:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+        return self.async_show_form(step_id="user", data_schema=schema, errors=erreurs)
+
+    def _terminer(self) -> ConfigFlowResult:
+        return self.async_create_entry(title=self._donnees[CONF_NOM], data=self._donnees)
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> TarifeauOptionsFlow:
+        """Options : changer de tarif, nouvelle relève."""
+        return TarifeauOptionsFlow()
+
+
+class TarifeauOptionsFlow(_EtapesTarif, OptionsFlowWithReload):
+    """Options modifiables après coup. L'entrée est rechargée à l'enregistrement."""
+
+    def __init__(self) -> None:
+        self._donnees: dict[str, Any] = {}
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Menu : changer de tarif, ou saisir une nouvelle relève."""
+        self._donnees = {**self.config_entry.data, **self.config_entry.options}
+        return self.async_show_menu(step_id="init", menu_options=["tarif", "releve"])
+
+    def _terminer(self) -> ConfigFlowResult:
+        options = {k: v for k, v in self._donnees.items() if k not in (CONF_NOM, CONF_INDEX)}
+        return self.async_create_entry(data=options)
+
+    async def _apres_tarif(self) -> ConfigFlowResult:
+        return self._terminer()  # changer de tarif ne demande pas de nouvelle relève

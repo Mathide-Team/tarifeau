@@ -17,6 +17,7 @@ from homeassistant.const import UnitOfVolume
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.util import slugify
 
 from . import TarifeauConfigEntry
 from .calcul import Facture, arrondi_euros
@@ -94,6 +95,22 @@ CAPTEURS: tuple[DescriptionCapteur, ...] = (
         attributs=lambda e: {**_detail(e.estimation or e.facture), "fin_periode": e.fin_periode.isoformat()},
     ),
     DescriptionCapteur(
+        key="cout_jour",
+        translation_key="cout_jour",
+        device_class=SensorDeviceClass.MONETARY,
+        unite_devise=True,
+        suggested_display_precision=2,
+        valeur=lambda e: e.cout_jour,
+    ),
+    DescriptionCapteur(
+        key="cout_mois",
+        translation_key="cout_mois",
+        device_class=SensorDeviceClass.MONETARY,
+        unite_devise=True,
+        suggested_display_precision=2,
+        valeur=lambda e: e.cout_mois,
+    ),
+    DescriptionCapteur(
         key="prix_marginal",
         translation_key="prix_marginal",
         unite_prix=True,
@@ -147,6 +164,9 @@ class CapteurFacture(RestoreSensor):
         self.entity_description = description
         self._suivi: SuiviFacture = entry.runtime_data
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        # Identifiant stable quelle que soit la langue de l'instance : le tableau de bord
+        # prêt à coller (dashboard/) s'y réfère. Exemple : sensor.facture_d_eau_prix_marginal.
+        self.entity_id = f"sensor.{slugify(entry.title)}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,

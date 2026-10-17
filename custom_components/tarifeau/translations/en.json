@@ -134,6 +134,12 @@
       },
       "tranche": {
         "name": "Current tier"
+      },
+      "cout_jour": {
+        "name": "Cost today"
+      },
+      "cout_mois": {
+        "name": "Cost this month"
       }
     }
   }

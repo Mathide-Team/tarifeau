@@ -59,7 +59,7 @@ def test_plusieurs_entrees(tmp_path) -> None:
     assert [s["cards"][0]["heading"] for s in sections] == ["Maison", "Dupont"]
     assert sections[1]["cards"][1]["max"] == 400
     entites = _entites(tableau)
-    assert {f"sensor.dupont_{cle}" for cle in generer.CLES} <= entites | {"sensor.dupont_cout_releve"}
+    assert {f"sensor.dupont_{cle}" for cle in generer.CLES} <= entites
     assert all(e.startswith(("sensor.maison_", "sensor.dupont_")) for e in entites)
 
 

@@ -25,7 +25,16 @@ import yaml
 RACINE = Path(__file__).resolve().parent.parent
 SORTIE = RACINE / "dashboard" / "facture_eau.yaml"
 NOM_PAR_DEFAUT = "Facture d'eau"
-CLES = ("cout_releve", "estimation", "prix_marginal", "prix_moyen", "volume_releve", "tranche")
+CLES = (
+    "cout_releve",
+    "cout_jour",
+    "cout_mois",
+    "estimation",
+    "prix_marginal",
+    "prix_moyen",
+    "volume_releve",
+    "tranche",
+)
 
 EN_TETE = """\
 # Tableau de bord Home Assistant « Facture d'eau » (tarifeau), cartes natives uniquement.
@@ -83,6 +92,8 @@ def section(nom: str, maximum: int) -> dict:
                 "name": "Prochaine facture (estimation)",
                 "vertical": True,
             },
+            {"type": "tile", "entity": e["cout_jour"], "name": "Aujourd'hui", "icon": "mdi:calendar-today"},
+            {"type": "tile", "entity": e["cout_mois"], "name": "Ce mois-ci", "icon": "mdi:calendar-month"},
             {"type": "tile", "entity": e["prix_marginal"], "name": "Prix du prochain m³", "icon": "mdi:cash"},
             {"type": "tile", "entity": e["prix_moyen"], "name": "Prix moyen", "icon": "mdi:scale-balance"},
             {

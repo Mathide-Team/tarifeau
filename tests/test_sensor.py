@@ -12,7 +12,12 @@ from homeassistant.components.energy.validate import (
 )
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry, mock_restore_cache_with_extra_data
+from homeassistant.helpers.storage import Store
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+    mock_restore_cache_with_extra_data,
+)
 
 from custom_components.tarifeau.calcul import facture_periode
 from custom_components.tarifeau.const import (
@@ -81,6 +86,8 @@ async def test_capteurs_au_1er_avril(hass: HomeAssistant) -> None:
     ids = await _demarrer(hass, _entree(hass))
     assert set(ids) == {
         "cout_releve",
+        "cout_jour",
+        "cout_mois",
         "estimation",
         "prix_marginal",
         "prix_moyen",
@@ -201,3 +208,70 @@ async def test_annee_suivante_sans_assainissement_minuit(hass: HomeAssistant, fr
 )
 def test_ajouter_mois(jour, mois, attendu) -> None:
     assert ajouter_mois(jour, mois) == attendu
+
+
+async def test_cout_du_jour_et_du_mois(hass: HomeAssistant, freezer, hass_storage) -> None:
+    freezer.move_to("2026-04-01 08:00:00+02:00")
+    await hass.config.async_update(time_zone="Europe/Paris")
+    hass.states.async_set(INDEX, "130", ATTRS)
+    entry = _entree(hass)
+    ids = await _demarrer(hass, entry)
+    # Premier démarrage : repères posés sur l'index actuel ; seule la part d'abonnement du jour compte.
+    abonnement_jour = (Decimal(15) * Decimal("1.055") + Decimal(10) * Decimal("1.10")) / 365
+    assert Decimal(_valeur(hass, ids["cout_jour"])) == round(abonnement_jour, 2)
+    assert Decimal(_valeur(hass, ids["cout_mois"])) == round(abonnement_jour, 2)
+    hass.states.async_set(INDEX, "131", ATTRS)  # 1 m³ dans la matinée
+    await hass.async_block_till_done()
+    un_m3 = Decimal("1.865") * Decimal("1.055") + Decimal("1.70") * Decimal("1.10")  # 2e tranche
+    assert Decimal(_valeur(hass, ids["cout_jour"])) == round(un_m3 + abonnement_jour, 2)
+
+    # Le lendemain : le coût du jour repart de l'index de la veille, l'abonnement du jour s'ajoute.
+    freezer.move_to("2026-04-02 08:00:00+02:00")
+    hass.states.async_set(INDEX, "132", ATTRS)
+    await hass.async_block_till_done()
+    assert Decimal(_valeur(hass, ids["cout_jour"])) == round(un_m3 + abonnement_jour, 2)
+    assert Decimal(_valeur(hass, ids["cout_mois"])) == round(2 * un_m3 + 2 * abonnement_jour, 2)
+
+    # Repères mémorisés (Store), puis supprimés avec l'entrée.
+    await hass.async_block_till_done()
+    freezer.tick(5)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    cle = f"{DOMAIN}.{entry.entry_id}"
+    assert entry.runtime_data.reperes["jour"] == "2026-04-02"
+    assert hass_storage[cle]["data"]["jour"] == "2026-04-02"
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert await Store(hass, 1, cle).async_load() is None
+
+
+async def test_reperes_restaures_et_compteur_remplace(hass: HomeAssistant, freezer, hass_storage) -> None:
+    freezer.move_to("2026-04-02 08:00:00+02:00")
+    await hass.config.async_update(time_zone="Europe/Paris")
+    entry = _entree(hass)
+    hass_storage[f"{DOMAIN}.{entry.entry_id}"] = {
+        "version": 1,
+        "key": f"{DOMAIN}.{entry.entry_id}",
+        "data": {"jour": "2026-04-01", "index_jour": "125", "mois": "2026-04-01", "index_mois": "120"},
+    }
+    hass.states.async_set(INDEX, "130", ATTRS)
+    ids = await _demarrer(hass, entry)
+    # Nouveau jour, repère du mois gardé : 10 m³ depuis le 1er avril.
+    assert entry.runtime_data.reperes["index_mois"] == "120"
+    assert entry.runtime_data.reperes["index_jour"] == "130"
+    assert Decimal(_valeur(hass, ids["cout_mois"])) > 10 * Decimal("1.865")
+    # Compteur remplacé le 3 avril : repères repartis du nouvel index.
+    freezer.move_to("2026-04-03 08:00:00+02:00")
+    hass.states.async_set(INDEX, "2", ATTRS)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.reperes["index_jour"] == "2"
+
+
+@pytest.mark.usefixtures("le_1er_avril")
+async def test_repere_sans_index_ignore(hass: HomeAssistant) -> None:
+    hass.states.async_set(INDEX, "130", ATTRS)
+    entry = _entree(hass)
+    await _demarrer(hass, entry)
+    etat = entry.runtime_data.calculer(Decimal(130), date(2026, 4, 1), {"jour": "2026-04-01"})
+    assert etat.cout_jour is None
+    assert etat.cout_mois is None

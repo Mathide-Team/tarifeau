@@ -95,6 +95,22 @@ CAPTEURS: tuple[DescriptionCapteur, ...] = (
         attributs=lambda e: {**_detail(e.estimation or e.facture), "fin_periode": e.fin_periode.isoformat()},
     ),
     DescriptionCapteur(
+        key="cout_jour",
+        translation_key="cout_jour",
+        device_class=SensorDeviceClass.MONETARY,
+        unite_devise=True,
+        suggested_display_precision=2,
+        valeur=lambda e: e.cout_jour,
+    ),
+    DescriptionCapteur(
+        key="cout_mois",
+        translation_key="cout_mois",
+        device_class=SensorDeviceClass.MONETARY,
+        unite_devise=True,
+        suggested_display_precision=2,
+        valeur=lambda e: e.cout_mois,
+    ),
+    DescriptionCapteur(
         key="prix_marginal",
         translation_key="prix_marginal",
         unite_prix=True,

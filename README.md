@@ -32,6 +32,7 @@ Un appareil « Facture d'eau » par entrée, recalculé à chaque nouvel index (
 | Capteur | Unité | Usage |
 |---|---|---|
 | Coût depuis la dernière relève | € TTC | détail HT, TVA et TTC par service et ligne par ligne en attributs, avec le tarif et sa source |
+| Coût aujourd'hui, coût du mois | € TTC | depuis minuit et depuis le 1er du mois (ou depuis la relève, si elle est plus récente), part d'abonnement comprise |
 | Estimation de la prochaine facture | € TTC | projection à la fin de la période (6 ou 12 mois après la relève), au rythme actuel |
 | Prix marginal | €/m³ TTC | prix du prochain m³ selon la tranche : **entité de prix pour le tableau de bord Énergie** (Eau) |
 | Prix moyen | €/m³ TTC | total / volume, abonnements compris |

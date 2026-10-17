@@ -30,6 +30,14 @@ views:
       name: Prochaine facture (estimation)
       vertical: true
     - type: tile
+      entity: sensor.facture_d_eau_cout_jour
+      name: Aujourd'hui
+      icon: mdi:calendar-today
+    - type: tile
+      entity: sensor.facture_d_eau_cout_mois
+      name: Ce mois-ci
+      icon: mdi:calendar-month
+    - type: tile
       entity: sensor.facture_d_eau_prix_marginal
       name: Prix du prochain m³
       icon: mdi:cash

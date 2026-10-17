@@ -17,9 +17,10 @@ from typing import Any
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event, async_track_time_change
+from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .calcul import Facture, Marginal, consommation, facture_periode, prix_marginal
+from .calcul import Facture, Marginal, arrondi_euros, consommation, facture_periode, prix_marginal
 from .const import (
     CONF_ASSAINISSEMENT,
     CONF_DATE_RELEVE,
@@ -46,6 +47,10 @@ def ajouter_mois(jour: date, mois: int) -> date:
     return date(annee, mois_cible, min(jour.day, calendar.monthrange(annee, mois_cible)[1]))
 
 
+def _ttc(facture: Facture) -> Decimal:
+    return sum((s.ttc for s in facture.services), Decimal(0))
+
+
 def charger_tarif_config(config: dict[str, Any]) -> Tarif:
     """Tarif de l'entrée (lecture de fichier : à appeler hors de la boucle d'événements)."""
     if config.get(CONF_SOURCE) == SOURCE_PREREGLAGE:
@@ -67,6 +72,8 @@ class Etat:
     tarif: Tarif
     jour: date
     tarif_prolonge: bool = False  # dates hors du tarif connu : dernier tarif prolongé
+    cout_jour: Decimal | None = None  # € TTC depuis minuit (None : pas encore de repère)
+    cout_mois: Decimal | None = None  # € TTC depuis le 1er du mois (ou la relève si elle est plus récente)
 
 
 @dataclass
@@ -80,6 +87,8 @@ class SuiviFacture:
     _ecouteurs: list[Callable[[], None]] = field(default_factory=list)
     _desabonnements: list[Callable[[], None]] = field(default_factory=list)
     _averti: bool = False
+    reperes: dict[str, str] = field(default_factory=dict)  # index au début du jour et du mois
+    store: Store | None = None
 
     @property
     def date_releve(self) -> date:
@@ -101,7 +110,7 @@ class SuiviFacture:
         except ArithmeticError:
             return None
 
-    def calculer(self, index: Decimal, jour: date) -> Etat:
+    def calculer(self, index: Decimal, jour: date, reperes: dict[str, str] | None = None) -> Etat:
         """Facture depuis la relève jusqu'à ``jour`` inclus, et projection à la fin de la période."""
         releve, fin = self.date_releve, self.fin_periode
         volume = consommation(Decimal(str(self.config[CONF_INDEX_RELEVE])), index)
@@ -129,16 +138,71 @@ class SuiviFacture:
             else volume * (jour - date(jour.year, 1, 1)).days / jours
         )
         marginal = prix_marginal(tarif, jour, cumul_jour)
-        return Etat(index, volume, facture, estimation, fin, marginal, self.tarif, jour, prolonge)
+
+        def cout_depuis(debut: date, index_debut: str | None) -> Decimal | None:
+            """Coût TTC entre ``debut`` (index ``index_debut``) et maintenant."""
+            if index_debut is None:
+                return None
+            if debut <= releve:
+                return facture.total_ttc
+            avant = facture_periode(
+                tarif,
+                releve,
+                debut,
+                consommation(Decimal(str(self.config[CONF_INDEX_RELEVE])), Decimal(index_debut)),
+                cumul,
+            )
+            return arrondi_euros(_ttc(facture) - _ttc(avant))
+
+        reperes = reperes or {}
+        cout_jour = (
+            cout_depuis(jour, reperes.get("index_jour")) if reperes.get("jour") == jour.isoformat() else None
+        )
+        mois = jour.replace(day=1)
+        cout_mois = (
+            cout_depuis(mois, reperes.get("index_mois")) if reperes.get("mois") == mois.isoformat() else None
+        )
+        return Etat(
+            index,
+            volume,
+            facture,
+            estimation,
+            fin,
+            marginal,
+            self.tarif,
+            jour,
+            prolonge,
+            cout_jour,
+            cout_mois,
+        )
 
     @callback
     def rafraichir(self, *_: Any) -> None:
         """Recalcule si l'index est lisible ; sinon garde le dernier état."""
         index = self.lire_index()
         if index is not None:
-            self.etat = self.calculer(index, dt_util.now().date())
+            jour = dt_util.now().date()
+            self._avancer_reperes(index, jour)
+            self.etat = self.calculer(index, jour, self.reperes)
         for ecouteur in list(self._ecouteurs):
             ecouteur()
+
+    @callback
+    def _avancer_reperes(self, index: Decimal, jour: date) -> None:
+        """Nouveau jour ou nouveau mois : l'index de départ est le dernier connu (sinon l'actuel)."""
+        precedent = self.etat.index if self.etat is not None else index
+        if index < precedent:  # compteur remplacé : on repart de l'index actuel
+            precedent = index
+        change = False
+        for cle, debut in (("jour", jour), ("mois", jour.replace(day=1))):
+            if self.reperes.get(cle) != debut.isoformat():
+                connu = cle in self.reperes
+                self.reperes[cle] = debut.isoformat()
+                # Premier démarrage : sans repère connu, on part de l'index actuel.
+                self.reperes[f"index_{cle}"] = str(precedent if connu else index)
+                change = True
+        if change and self.store is not None:
+            self.store.async_delay_save(lambda: dict(self.reperes), 1)
 
     @callback
     def ecouter(self, ecouteur: Callable[[], None]) -> Callable[[], None]:

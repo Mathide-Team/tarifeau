@@ -134,6 +134,12 @@
       },
       "tranche": {
         "name": "Tranche actuelle"
+      },
+      "cout_jour": {
+        "name": "Coût aujourd'hui"
+      },
+      "cout_mois": {
+        "name": "Coût du mois"
       }
     }
   }

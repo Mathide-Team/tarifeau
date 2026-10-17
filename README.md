@@ -14,7 +14,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 
 ## Installation (HACS)
 
-> En cours : configuration et capteurs disponibles ; le tableau de bord prêt à coller arrive avec l'issue #6.
+> En cours : configuration, capteurs et tableau de bord disponibles ; la première version est suivie dans l'issue #10.
 
 1. HACS → menu ⋮ → **Dépôts personnalisés** → `https://github.com/Mathide-Team/tarifeau`, catégorie **Intégration**.
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
@@ -32,6 +32,7 @@ Un appareil « Facture d'eau » par entrée, recalculé à chaque nouvel index (
 | Capteur | Unité | Usage |
 |---|---|---|
 | Coût depuis la dernière relève | € TTC | détail HT, TVA et TTC par service et ligne par ligne en attributs, avec le tarif et sa source |
+| Coût aujourd'hui, coût du mois | € TTC | depuis minuit et depuis le 1er du mois (ou depuis la relève, si elle est plus récente), part d'abonnement comprise |
 | Estimation de la prochaine facture | € TTC | projection à la fin de la période (6 ou 12 mois après la relève), au rythme actuel |
 | Prix marginal | €/m³ TTC | prix du prochain m³ selon la tranche : **entité de prix pour le tableau de bord Énergie** (Eau) |
 | Prix moyen | €/m³ TTC | total / volume, abonnements compris |
@@ -42,6 +43,18 @@ Les capteurs gardent leur dernière valeur si l'index devient indisponible, et l
 
 **Tableau de bord Énergie** : Paramètres → Tableaux de bord → Énergie → Consommation d'eau → ajouter le capteur d'index, puis « Utiliser une entité avec le prix actuel » → **Prix marginal**.
 
+## Tableau de bord
+
+[`dashboard/facture_eau.yaml`](dashboard/facture_eau.yaml) est une vue « Facture d'eau » faite uniquement de cartes natives : jauge du coût depuis la relève, estimation, prix marginal et prix moyen, volume, tranche, coût par jour et par mois (statistiques), et détail ligne par ligne (carte Markdown avec le HT, la TVA et le TTC de chaque service, ainsi que le lien vers la délibération).
+
+Il suppose une entrée nommée « Facture d'eau ». Les capteurs ont des identifiants fixes, quelle que soit la langue : `sensor.<nom>_<clé>`, par exemple `sensor.facture_d_eau_prix_marginal`. Pour d'autres noms, ou une section par compteur :
+
+```bash
+uv run --with pyyaml python scripts/generer_tableau_de_bord.py "Maison" "Dupont" --max 400 -o mon_tableau.yaml
+```
+
+Puis Paramètres → Tableaux de bord → Ajouter un tableau de bord → à partir de zéro → ⋮ → Éditeur de configuration brute, et coller le fichier.
+
 ## Décrire un tarif
 
 Un tarif est un fichier YAML, rangé dans `custom_components/tarifeau/tarifs/`. Le format est documenté en tête de `modele.py` :
@@ -50,7 +63,14 @@ Un tarif est un fichier YAML, rangé dans `custom_components/tarifeau/tarifs/`. 
 - pour chaque **service** (`eau_potable`, `assainissement`, `autre`) : son taux de TVA, ses abonnements (€ HT/an) et ses composantes au m³ (€ HT/m³), éventuellement par **tranches annuelles** ;
 - les **redevances** de l'agence de l'eau sont des composantes marquées `redevance: true`.
 
-Préréglage fourni : **Grand Besançon Métropole (régie) 2026**. Les tests vérifient qu'il redonne la facture type officielle : 484,23 € TTC pour 120 m³ (248,83 € d'eau potable et 235,40 € d'assainissement).
+Préréglages fournis :
+
+| Collectivité | Depuis | 120 m³ | Source |
+|---|---|---|---|
+| Grand Besançon Métropole (régie) | 01/01/2026 | 484,23 € TTC, égal à la facture type officielle | [RPQS 2025](https://datasets.grandbesancon.fr/fichiers/delibs/grandBesancon/conseilCommunautaire/2026/20260924/0000C9DA.PDF) |
+| Grand Belfort (régie) | 01/05/2026 | 624,32 € TTC (assainissement non assujetti à la TVA) | [page Abonnements et tarifs](https://www.grandbelfort.fr/eau/abonnements-et-tarifs.html) |
+
+Ta commune manque ? Ouvre une issue **« Ajouter ma commune »**, ou suis le guide [`tarifs/CONTRIBUER.md`](custom_components/tarifeau/tarifs/CONTRIBUER.md).
 
 ## Comment la facture est calculée
 

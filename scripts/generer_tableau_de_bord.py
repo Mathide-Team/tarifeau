@@ -53,13 +53,21 @@ DETAIL = """\
 {%- set c = 'ENTITE' -%}
 {%- set services = state_attr(c, 'services') or {} -%}
 {%- set noms = {'eau_potable': 'Eau potable', 'assainissement': 'Assainissement', 'autre': 'Prix fixe'} -%}
-| Service | Ligne | Quantité | Prix HT | Montant HT |
-|---|---|--:|--:|--:|
+{%- macro fr(x, f='%.2f') %}{{ (f % x) | replace('.', ',') }}{% endmacro -%}
+| Ligne | Quantité | Prix HT | Montant HT |
+|---|--:|--:|--:|
 {%- for l in state_attr(c, 'lignes') or [] %}
-| {{ noms.get(l.service, l.service) }} | {{ l.libelle }} | {{ l.quantite }} | {{ l.prix_unitaire_ht }} | {{ '%.2f' % l.montant_ht }} € |
+{%- if loop.changed(l.service) %}
+| **{{ noms.get(l.service, l.service) }}** | | | |
+{%- endif %}
+{%- if l.unite == 'an' %}
+| {{ l.libelle }} | {{ l.jours ~ ' j' if l.jours is defined else fr(l.quantite, '%g') ~ ' an' }} | {{ fr(l.prix_unitaire_ht, '%g') }} €/an | {{ fr(l.montant_ht) }} € |
+{%- else %}
+| {{ l.libelle }} | {{ fr(l.quantite, '%g') }} m³ | {{ fr(l.prix_unitaire_ht, '%g') }} €/m³ | {{ fr(l.montant_ht) }} € |
+{%- endif %}
 {%- endfor %}
 {%- for code, s in services.items() %}
-| **{{ noms.get(code, code) }}** | TVA {{ s.taux_tva }} % | | {{ '%.2f' % s.ht }} € HT | **{{ '%.2f' % s.ttc }} € TTC** |
+| **Total {{ noms.get(code, code) | lower }}** | TVA {{ fr(s.taux_tva, '%g') }} % | {{ fr(s.ht) }} € HT | **{{ fr(s.ttc) }} € TTC** |
 {%- endfor %}
 
 Tarif : [{{ state_attr(c, 'tarif') }}]({{ state_attr(c, 'source') }})
@@ -72,10 +80,10 @@ def slug(nom: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", ascii_.lower()).strip("_") or "facture_d_eau"
 
 
-def section(nom: str, maximum: int) -> dict:
-    """Section d'une entrée : jauge, prix, statistiques, détail."""
+def sections(nom: str, maximum: int) -> list[dict]:
+    """Trois sections par entrée : résumé (jauge et prix), coûts (statistiques), détail."""
     e = {cle: f"sensor.{slug(nom)}_{cle}" for cle in CLES}
-    return {
+    resume = {
         "type": "grid",
         "cards": [
             {"type": "heading", "heading": nom, "icon": "mdi:water-circle"},
@@ -90,7 +98,7 @@ def section(nom: str, maximum: int) -> dict:
             {
                 "type": "tile",
                 "entity": e["estimation"],
-                "name": "Prochaine facture (estimation)",
+                "name": "Prochaine facture",
                 "vertical": True,
             },
             {"type": "tile", "entity": e["cout_jour"], "name": "Aujourd'hui", "icon": "mdi:calendar-today"},
@@ -98,7 +106,7 @@ def section(nom: str, maximum: int) -> dict:
             {
                 "type": "tile",
                 "entity": e["ecart_facture"],
-                "name": "Écart dernière facture",
+                "name": "Écart facture",
                 "icon": "mdi:receipt-text-check",
             },
             {"type": "tile", "entity": e["prix_marginal"], "name": "Prix du prochain m³", "icon": "mdi:cash"},
@@ -106,10 +114,21 @@ def section(nom: str, maximum: int) -> dict:
             {
                 "type": "tile",
                 "entity": e["volume_releve"],
-                "name": "Volume depuis la relève",
+                "name": "Volume",
                 "icon": "mdi:water",
             },
             {"type": "tile", "entity": e["tranche"], "name": "Tranche actuelle", "icon": "mdi:stairs"},
+        ],
+    }
+    couts = {
+        "type": "grid",
+        "cards": [
+            {
+                "type": "heading",
+                "heading": f"{nom} : coûts",
+                "heading_style": "subtitle",
+                "icon": "mdi:chart-bar",
+            },
             {
                 "type": "statistics-graph",
                 "title": "Coût par jour",
@@ -128,13 +147,22 @@ def section(nom: str, maximum: int) -> dict:
                 "days_to_show": 365,
                 "chart_type": "bar",
             },
-            {
-                "type": "markdown",
-                "title": "Détail de la facture en cours",
-                "content": DETAIL.replace("ENTITE", e["cout_releve"]),
-            },
         ],
     }
+    detail = {
+        "type": "grid",
+        "column_span": 2,  # tableau à 4 colonnes : trop étroit sur une seule
+        "cards": [
+            {
+                "type": "heading",
+                "heading": f"{nom} : détail de la facture en cours",
+                "heading_style": "subtitle",
+                "icon": "mdi:receipt-text-outline",
+            },
+            {"type": "markdown", "content": DETAIL.replace("ENTITE", e["cout_releve"])},
+        ],
+    }
+    return [resume, couts, detail]
 
 
 def tableau(noms: list[str], maximum: int) -> dict:
@@ -148,7 +176,7 @@ def tableau(noms: list[str], maximum: int) -> dict:
                 "icon": "mdi:receipt-text",
                 "type": "sections",
                 "max_columns": 3,
-                "sections": [section(nom, maximum) for nom in noms],
+                "sections": [s for nom in noms for s in sections(nom, maximum)],
             }
         ],
     }

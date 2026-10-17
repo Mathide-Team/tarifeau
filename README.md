@@ -25,6 +25,8 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 
    Ensuite, **Configurer** permet de changer de tarif ou de saisir une nouvelle relève à chaque facture.
 
+   ![Ajout d'un compteur : nom de la facture et capteur d'index](docs/captures/ajout-compteur.png)
+
 ### Installation à la main
 
 Copie le dossier `custom_components/tarifeau/` de la [dernière version](https://github.com/Mathide-Team/tarifeau/releases) dans le dossier `custom_components/` de ta configuration Home Assistant (à côté de `configuration.yaml`), redémarre, puis reprends à l'étape 3. Les mises à jour se font de la même façon : remplacer le dossier, puis redémarrer.
@@ -92,7 +94,9 @@ Pour un autre canal (application mobile, e-mail…), il suffit d'une automatisat
 
 ## Tableau de bord
 
-[`dashboard/facture_eau.yaml`](dashboard/facture_eau.yaml) est une vue « Facture d'eau » faite uniquement de cartes natives : jauge du coût depuis la relève, estimation, prix marginal et prix moyen, volume, tranche, coût par jour et par mois (statistiques), et détail ligne par ligne (carte Markdown avec le HT, la TVA et le TTC de chaque service, ainsi que le lien vers la délibération).
+![Tableau de bord « Facture d'eau » : jauge, prix, coût par jour et par mois, détail de la facture en cours](docs/captures/tableau-de-bord.png)
+
+[`dashboard/facture_eau.yaml`](dashboard/facture_eau.yaml) est une vue « Facture d'eau » faite uniquement de cartes natives : jauge du coût depuis la relève, estimation, prix marginal et prix moyen, volume, tranche, coût par jour et par mois (statistiques), et détail ligne par ligne, regroupé par service (carte Markdown avec la quantité, le prix, le HT, la TVA et le TTC de chaque service, ainsi que le lien vers la délibération). Trois sections par compteur : résumé, coûts, détail. Les captures viennent d'un vrai Home Assistant 2026.2.3, avec un compteur simulé et des statistiques simulées.
 
 Il suppose une entrée nommée « Facture d'eau ». Les capteurs ont des identifiants fixes, quelle que soit la langue : `sensor.<nom>_<clé>`, par exemple `sensor.facture_d_eau_prix_marginal`. Pour d'autres noms, ou une section par compteur :
 

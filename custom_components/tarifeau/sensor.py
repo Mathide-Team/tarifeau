@@ -54,6 +54,13 @@ def _attributs_cout(etat: Etat) -> dict[str, Any]:
                 "quantite": float(round(ligne.quantite, 4)),
                 "prix_unitaire_ht": float(ligne.prix_unitaire_ht),
                 "montant_ht": float(arrondi_euros(ligne.montant_ht)),
+                "unite": ligne.unite,
+                # Abonnement : nombre de jours facturés, plus parlant qu'une fraction d'année.
+                **(
+                    {"jours": (ligne.au - ligne.du).days}
+                    if ligne.unite == "an" and ligne.du and ligne.au
+                    else {}
+                ),
             }
             for ligne in etat.facture.lignes
         ],

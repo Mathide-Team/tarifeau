@@ -20,7 +20,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
 3. **Paramètres → Appareils et services → Ajouter une intégration → tarifeau**, puis :
    1. le **capteur d'index** du compteur (m³ ou L, `state_class` `total_increasing` ou `total`), par exemple « Compteur eau - Volume total » d'[Esphome-Compteur-wmbus](https://github.com/Mathide-Team/Esphome-Compteur-wmbus). Une facture par compteur : une par voisin, par exemple ;
-   2. la **source du tarif** : le tarif d'une collectivité (avec ou sans assainissement collectif) ou un prix fixe TTC au m³ ;
+   2. la **source du tarif** : le tarif d'une collectivité (avec ou sans assainissement collectif), un prix fixe TTC au m³, ou une **entité de prix** (voir plus bas) ;
    3. la **dernière relève** : facturation annuelle ou semestrielle, date et index, repris de ta dernière facture.
 
    Ensuite, **Configurer** permet de changer de tarif ou de saisir une nouvelle relève à chaque facture.
@@ -42,6 +42,14 @@ Un appareil « Facture d'eau » par entrée, recalculé à chaque nouvel index (
 Les capteurs gardent leur dernière valeur si l'index devient indisponible, et la retrouvent au redémarrage. Si le tarif de l'année n'est pas encore dans le préréglage, le dernier tarif connu est prolongé : l'attribut `tarif_prolonge` passe alors à `true` et un avertissement est écrit dans le journal.
 
 **Tableau de bord Énergie** : Paramètres → Tableaux de bord → Énergie → Consommation d'eau → ajouter le capteur d'index, puis « Utiliser une entité avec le prix actuel » → **Prix marginal**.
+
+## Source « entité de prix » (HydroTarif)
+
+Ta collectivité n'a pas encore de préréglage ? [HydroTarif](https://github.com/jul-fls/ha-hydrotarif) donne, pour chaque commune, le prix de l'eau publié dans l'observatoire national [SISPEA](https://www.services.eaufrance.fr/). Choisis la source « Entité de prix », puis son capteur « Prix total » (en €/m³). N'importe quel capteur en €/m³ convient aussi.
+
+- Le calcul reprend chaque nouveau prix dès qu'il est publié. Si l'entité devient indisponible, le dernier prix connu est conservé.
+- Les attributs `source` et `date_source` reprennent la page SISPEA et la date d'application (données de l'année N, appliquées au 1er janvier de N+1).
+- **Limite** : c'est un **prix moyen** pour 120 m³ par an, abonnement compris. Il n'y a ni tranches ni abonnement séparé, et le « prix du prochain m³ » vaut ce prix moyen (attribut `prix_moyen_seul: true`). Un préréglage reste plus juste : voir [tarifs/CONTRIBUER.md](custom_components/tarifeau/tarifs/CONTRIBUER.md).
 
 ## Tableau de bord
 

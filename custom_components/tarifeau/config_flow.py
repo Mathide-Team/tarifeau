@@ -19,6 +19,7 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_ASSAINISSEMENT,
     CONF_DATE_RELEVE,
+    CONF_ENTITE_PRIX,
     CONF_FACTURATION,
     CONF_INDEX,
     CONF_INDEX_RELEVE,
@@ -30,11 +31,13 @@ from .const import (
     FACTURATIONS,
     NOM_PAR_DEFAUT,
     SOURCE_PREREGLAGE,
+    SOURCE_PRIX_FIXE,
     SOURCES,
     STATE_CLASSES_INDEX,
     UNITES_INDEX,
 )
 from .modele import charger_tarif, prereglages
+from .suivi import prix_entite, unite_prix_valide
 
 
 def index_actuel_m3(hass: HomeAssistant, entity_id: str) -> float | None:
@@ -106,6 +109,28 @@ def _schema_prix_fixe(actuel: dict[str, Any]) -> vol.Schema:
     )
 
 
+def _schema_entite_prix() -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_ENTITE_PRIX): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            )
+        }
+    )
+
+
+def _verifier_entite_prix(hass: HomeAssistant, entity_id: str) -> str | None:
+    """Code d'erreur si l'entité ne donne pas un prix au m³ exploitable, sinon ``None``."""
+    etat = hass.states.get(entity_id)
+    if etat is None:
+        return "capteur_absent"
+    if not unite_prix_valide(etat.attributes.get(ATTR_UNIT_OF_MEASUREMENT)):
+        return "unite_prix"
+    if prix_entite(etat) is None:
+        return "prix_indisponible"
+    return None
+
+
 def _schema_releve(actuel: dict[str, Any], index_m3: float | None) -> vol.Schema:
     index_defaut = actuel.get(CONF_INDEX_RELEVE, round(index_m3, 3) if index_m3 is not None else 0)
     return vol.Schema(
@@ -157,7 +182,9 @@ class _EtapesTarif:
             self._donnees[CONF_SOURCE] = user_input[CONF_SOURCE]
             if user_input[CONF_SOURCE] == SOURCE_PREREGLAGE:
                 return await self.async_step_prereglage()
-            return await self.async_step_prix_fixe()
+            if user_input[CONF_SOURCE] == SOURCE_PRIX_FIXE:
+                return await self.async_step_prix_fixe()
+            return await self.async_step_entite_prix()
         return self.async_show_form(
             step_id="tarif", data_schema=_schema_source(self._actuel().get(CONF_SOURCE, SOURCE_PREREGLAGE))
         )
@@ -167,6 +194,7 @@ class _EtapesTarif:
         if user_input is not None:
             self._donnees.update(user_input)
             self._donnees.pop(CONF_PRIX_FIXE, None)
+            self._donnees.pop(CONF_ENTITE_PRIX, None)
             return await self._apres_tarif()
         options = await _noms_prereglages(self.hass)
         return self.async_show_form(
@@ -179,8 +207,25 @@ class _EtapesTarif:
             self._donnees.update(user_input)
             self._donnees.pop(CONF_PREREGLAGE, None)
             self._donnees.pop(CONF_ASSAINISSEMENT, None)
+            self._donnees.pop(CONF_ENTITE_PRIX, None)
             return await self._apres_tarif()
         return self.async_show_form(step_id="prix_fixe", data_schema=_schema_prix_fixe(self._actuel()))
+
+    async def async_step_entite_prix(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Capteur de prix moyen au m³ (HydroTarif : prix total eau + assainissement)."""
+        erreurs: dict[str, str] = {}
+        if user_input is not None:
+            erreur = _verifier_entite_prix(self.hass, user_input[CONF_ENTITE_PRIX])
+            if erreur:
+                erreurs[CONF_ENTITE_PRIX] = erreur
+            else:
+                self._donnees.update(user_input)
+                for cle in (CONF_PREREGLAGE, CONF_ASSAINISSEMENT, CONF_PRIX_FIXE):
+                    self._donnees.pop(cle, None)
+                return await self._apres_tarif()
+        actuel = {**self._actuel(), **(user_input or {})}
+        schema = self.add_suggested_values_to_schema(_schema_entite_prix(), actuel)
+        return self.async_show_form(step_id="entite_prix", data_schema=schema, errors=erreurs)
 
     async def async_step_releve(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Date et index de la dernière relève (repris de la facture)."""

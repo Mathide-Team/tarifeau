@@ -344,13 +344,20 @@ def prereglages() -> list[str]:
     return sorted(p.stem for p in DOSSIER_TARIFS.glob("*.yaml"))
 
 
-def tarif_prix_fixe(prix_ttc_m3: Decimal | int | float | str, debut: date = date(2000, 1, 1)) -> Tarif:
-    """Tarif minimal : un prix TTC au m³, sans abonnement ni TVA séparée (source « prix fixe »)."""
+def tarif_prix_fixe(
+    prix_ttc_m3: Decimal | int | float | str,
+    debut: date = date(2000, 1, 1),
+    *,
+    nom: str | None = None,
+    source: str = "https://github.com/Mathide-Team/tarifeau",
+    date_source: date | None = None,
+) -> Tarif:
+    """Tarif minimal : un prix TTC au m³, sans abonnement ni TVA séparée (sources « prix fixe » et entité)."""
     prix = _decimal(prix_ttc_m3, "prix_fixe")
     composante = Composante("Prix au m³ (TTC)", (Tranche(None, prix),))
     service = Service("autre", Decimal(0), (), (composante,))
-    periode = Periode(debut, None, (service,), "https://github.com/Mathide-Team/tarifeau", debut)
-    return Tarif("prix_fixe", f"Prix fixe {prix} €/m³", (periode,))
+    periode = Periode(debut, None, (service,), source, date_source or debut)
+    return Tarif("prix_fixe", nom or f"Prix fixe {prix} €/m³", (periode,))
 
 
 def sans_assainissement(tarif: Tarif) -> Tarif:

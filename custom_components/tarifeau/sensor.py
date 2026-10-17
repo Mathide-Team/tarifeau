@@ -61,6 +61,8 @@ def _attributs_cout(etat: Etat) -> dict[str, Any]:
         "source": periode.source,
         "date_source": periode.date_source.isoformat(),
         "tarif_prolonge": etat.tarif_prolonge,
+        # Source « prix fixe » ou entité de prix : abonnement réparti dans le prix, pas de tranches.
+        "prix_moyen_seul": len(periode.services) == 1 and periode.services[0].code == "autre",
     }
 
 
@@ -171,7 +173,7 @@ class CapteurFacture(RestoreSensor):
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,
             manufacturer="tarifeau",
-            model=self._suivi.tarif.nom,
+            model=self._suivi.tarif.nom if self._suivi.tarif else "Prix moyen (entité)",
             entry_type=DeviceEntryType.SERVICE,
         )
 

@@ -33,7 +33,7 @@ appliquer à une facture semestrielle relève du moteur (issue #3, ``tranches``)
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from itertools import pairwise
@@ -115,6 +115,14 @@ class Service:
 
 
 @dataclass(frozen=True)
+class FactureType:
+    """Facture type publiée par la collectivité, pour vérifier le tarif (test automatique)."""
+
+    volume_m3: Decimal
+    total_ttc: Decimal
+
+
+@dataclass(frozen=True)
 class Periode:
     """Tarif valable de ``debut`` à ``fin`` inclus (``fin`` : ``None`` = toujours en vigueur)."""
 
@@ -123,6 +131,7 @@ class Periode:
     services: tuple[Service, ...]
     source: str
     date_source: date
+    factures_types: tuple[FactureType, ...] = ()
 
     def couvre(self, jour: date) -> bool:
         """Vrai si ``jour`` tombe dans la période."""
@@ -268,7 +277,7 @@ def _periode(donnees: Any, chemin: str) -> Periode:
     donnees = _cles(
         donnees,
         chemin,
-        {"debut", "fin", "source", "date_source", "services"},
+        {"debut", "fin", "source", "date_source", "services", "factures_types"},
         {"debut", "source", "services"},
     )
     debut = _date(donnees["debut"], f"{chemin}.debut")
@@ -278,7 +287,17 @@ def _periode(donnees: Any, chemin: str) -> Periode:
     _exiger(isinstance(services_bruts, dict) and services_bruts, f"{chemin}.services", "au moins un service")
     services = tuple(_service(code, v, f"{chemin}.services.{code}") for code, v in services_bruts.items())
     date_source = _date(donnees.get("date_source", debut), f"{chemin}.date_source")
-    return Periode(debut, fin, services, _url(donnees["source"], f"{chemin}.source"), date_source)
+    factures_types = []
+    for i, brute in enumerate(_liste(donnees.get("factures_types", []), f"{chemin}.factures_types")):
+        c = f"{chemin}.factures_types[{i}]"
+        brute = _cles(brute, c, {"volume_m3", "total_ttc"}, {"volume_m3", "total_ttc"})
+        factures_types.append(
+            FactureType(
+                _decimal(brute["volume_m3"], f"{c}.volume_m3"), _decimal(brute["total_ttc"], f"{c}.total_ttc")
+            )
+        )
+    source = _url(donnees["source"], f"{chemin}.source")
+    return Periode(debut, fin, services, source, date_source, tuple(factures_types))
 
 
 def tarif_depuis_dict(donnees: Any) -> Tarif:
@@ -337,13 +356,22 @@ def tarif_prix_fixe(prix_ttc_m3: Decimal | int | float | str, debut: date = date
 def sans_assainissement(tarif: Tarif) -> Tarif:
     """Même tarif, sans le service d'assainissement (logement en assainissement non collectif)."""
     periodes = tuple(
-        Periode(
-            p.debut,
-            p.fin,
-            tuple(s for s in p.services if s.code != "assainissement"),
-            p.source,
-            p.date_source,
-        )
+        replace(p, services=tuple(s for s in p.services if s.code != "assainissement"), factures_types=())
         for p in tarif.periodes
     )
-    return Tarif(tarif.id, tarif.nom, periodes, tarif.facturation, tarif.tranches)
+    return replace(tarif, periodes=periodes)
+
+
+def prolonger(tarif: Tarif, du: date, au: date) -> tuple[Tarif, bool]:
+    """Tarif utilisable sur ``[du, au[`` même hors des dates connues.
+
+    Le premier tarif est étendu avant son début et le dernier n'a plus de fin : quand la
+    délibération de l'année n'est pas encore saisie, on garde le dernier tarif connu.
+    Renvoie aussi ``True`` si ``[du, au[`` sort des dates connues.
+    """
+    periodes = list(tarif.periodes)
+    premier, dernier = periodes[0], periodes[-1]
+    hors = du < premier.debut or (dernier.fin is not None and au - timedelta(days=1) > dernier.fin)
+    periodes[0] = replace(premier, debut=min(du, premier.debut))
+    periodes[-1] = replace(periodes[-1], fin=None)
+    return replace(tarif, periodes=tuple(periodes)), hors

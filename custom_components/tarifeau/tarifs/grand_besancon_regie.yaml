@@ -13,6 +13,8 @@ periodes:
     fin: 2026-12-31
     source: https://datasets.grandbesancon.fr/fichiers/delibs/grandBesancon/conseilCommunautaire/2026/20260924/0000C9DA.PDF
     date_source: 2025-12-11
+    factures_types:
+      - {volume_m3: 120, total_ttc: 484.23}  # 248,83 € (eau) + 235,40 € (assainissement)
     services:
       eau_potable:
         tva: 5.5

@@ -114,5 +114,33 @@
         "semestrielle": "Half-yearly"
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "cout_releve": {
+        "name": "Cost since last reading"
+      },
+      "estimation": {
+        "name": "Next bill estimate"
+      },
+      "prix_marginal": {
+        "name": "Marginal price"
+      },
+      "prix_moyen": {
+        "name": "Average price"
+      },
+      "volume_releve": {
+        "name": "Volume since last reading"
+      },
+      "tranche": {
+        "name": "Current tier"
+      },
+      "cout_jour": {
+        "name": "Cost today"
+      },
+      "cout_mois": {
+        "name": "Cost this month"
+      }
+    }
   }
 }

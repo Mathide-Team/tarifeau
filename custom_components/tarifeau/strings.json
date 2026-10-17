@@ -114,5 +114,33 @@
         "semestrielle": "Semestrielle"
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "cout_releve": {
+        "name": "Coût depuis la dernière relève"
+      },
+      "estimation": {
+        "name": "Estimation de la prochaine facture"
+      },
+      "prix_marginal": {
+        "name": "Prix marginal"
+      },
+      "prix_moyen": {
+        "name": "Prix moyen"
+      },
+      "volume_releve": {
+        "name": "Volume depuis la dernière relève"
+      },
+      "tranche": {
+        "name": "Tranche actuelle"
+      },
+      "cout_jour": {
+        "name": "Coût aujourd'hui"
+      },
+      "cout_mois": {
+        "name": "Coût du mois"
+      }
+    }
   }
 }

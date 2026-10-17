@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Facture d'eau",
+        "description": "Crée une facture d'eau calculée d'après ta consommation. Le capteur d'index et le tarif se règlent à l'étape suivante (bientôt).",
+        "data": {
+          "name": "Nom"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Une facture porte déjà ce nom."
+    }
+  }
+}

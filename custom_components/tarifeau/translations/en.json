@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Water bill",
+        "description": "Creates a water bill computed from your consumption. The meter index sensor and the tariff will be set in a next step (coming soon).",
+        "data": {
+          "name": "Name"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "A bill with this name already exists."
+    }
+  }
+}

@@ -50,7 +50,14 @@ Un tarif est un fichier YAML, rangé dans `custom_components/tarifeau/tarifs/`. 
 - pour chaque **service** (`eau_potable`, `assainissement`, `autre`) : son taux de TVA, ses abonnements (€ HT/an) et ses composantes au m³ (€ HT/m³), éventuellement par **tranches annuelles** ;
 - les **redevances** de l'agence de l'eau sont des composantes marquées `redevance: true`.
 
-Préréglage fourni : **Grand Besançon Métropole (régie) 2026**. Les tests vérifient qu'il redonne la facture type officielle : 484,23 € TTC pour 120 m³ (248,83 € d'eau potable et 235,40 € d'assainissement).
+Préréglages fournis :
+
+| Collectivité | Depuis | 120 m³ | Source |
+|---|---|---|---|
+| Grand Besançon Métropole (régie) | 01/01/2026 | 484,23 € TTC, égal à la facture type officielle | [RPQS 2025](https://datasets.grandbesancon.fr/fichiers/delibs/grandBesancon/conseilCommunautaire/2026/20260924/0000C9DA.PDF) |
+| Grand Belfort (régie) | 01/05/2026 | 624,32 € TTC (assainissement non assujetti à la TVA) | [page Abonnements et tarifs](https://www.grandbelfort.fr/eau/abonnements-et-tarifs.html) |
+
+Ta commune manque ? Ouvre une issue **« Ajouter ma commune »**, ou suis le guide [`tarifs/CONTRIBUER.md`](custom_components/tarifeau/tarifs/CONTRIBUER.md).
 
 ## Comment la facture est calculée
 

@@ -247,3 +247,13 @@ def test_prolonger() -> None:
     assert (prolonge.periodes[0].debut, prolonge.periodes[-1].fin) == (date(2025, 7, 1), None)
     assert prolonger(tarif, date(2026, 1, 1), date(2027, 1, 1))[1] is False  # 31/12/2026 compris
     assert prolonger(tarif, date(2026, 7, 1), date(2027, 1, 2))[1] is True
+
+
+def test_factures_types_lues_et_validees() -> None:
+    periode = charger_tarif("grand_besancon_regie").periodes[0]
+    assert periode.factures_types[0].volume_m3 == 120
+    assert periode.factures_types[0].total_ttc == Decimal("484.23")
+    base = _tarif()
+    base["periodes"][0]["factures_types"] = [{"volume_m3": 120}]
+    with pytest.raises(TarifInvalide, match="total_ttc"):
+        tarif_depuis_dict(base)

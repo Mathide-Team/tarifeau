@@ -1,0 +1,44 @@
+# Grand Belfort Communauté d'Agglomération (régie, Direction du cycle de l'eau).
+# Tarifs au 1er mai 2026, publiés sur la page « Abonnements et tarifs » du Grand Belfort.
+# - TVA 5,5 % sur la fourniture d'eau ; l'assainissement n'est pas assujetti à la TVA.
+# - Pas de tranches ; la coopération décentralisée (Burkina Faso) est rattachée à l'eau potable.
+# - Pas de facture type officielle : pour 120 m³, ce tarif donne 305,44 € (eau)
+#   + 318,88 € (assainissement) = 624,32 € TTC.
+# - Tarif précédent (1,53 €/m³ et 2,24 €/m³) : date d'effet à confirmer, pas encore saisi.
+id: grand_belfort
+nom: Grand Belfort (régie)
+facturation: semestrielle
+periodes:
+  - debut: 2026-05-01
+    source: https://www.grandbelfort.fr/eau/abonnements-et-tarifs.html
+    services:
+      eau_potable:
+        tva: 5.5
+        abonnements:
+          - nom: Part fixe eau potable
+            montant_ht_an: 40.00
+        composantes:
+          - nom: Prix de l'eau potable
+            prix_ht: 1.56
+          - nom: Redevance consommation d'eau potable
+            prix_ht: 0.39
+            redevance: true
+          - nom: Redevance performance des réseaux d'eau potable
+            prix_ht: 0.03
+            redevance: true
+          - nom: Redevance préservation des ressources en eau
+            prix_ht: 0.096
+            redevance: true
+          - nom: Coopération décentralisée
+            prix_ht: 0.0033
+      assainissement:
+        tva: 0
+        abonnements:
+          - nom: Part fixe assainissement
+            montant_ht_an: 40.00
+        composantes:
+          - nom: Redevance d'assainissement
+            prix_ht: 2.29
+          - nom: Redevance performance des réseaux d'assainissement collectifs
+            prix_ht: 0.034
+            redevance: true

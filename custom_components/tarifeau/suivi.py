@@ -28,11 +28,14 @@ from .const import (
     CONF_FACTURATION,
     CONF_INDEX,
     CONF_INDEX_RELEVE,
+    CONF_MONTANT_FACTURE,
     CONF_PREREGLAGE,
     CONF_PRIX_FIXE,
     CONF_SOURCE,
+    CONF_VOLUME_FACTURE,
     SOURCE_ENTITE_PRIX,
     SOURCE_PREREGLAGE,
+    SOURCE_TAUX_FACTURE,
     UNITES_INDEX,
 )
 from .modele import Tarif, charger_tarif, prolonger, sans_assainissement, tarif_prix_fixe
@@ -79,6 +82,12 @@ def tarif_entite(etat: State, prix: Decimal) -> Tarif:
     return tarif_prix_fixe(prix, nom=nom, source=source, date_source=date_source)
 
 
+def tarif_taux_facture(montant_ttc: float | Decimal, volume: float | Decimal) -> Tarif:
+    """Taux effectif de la dernière facture : montant TTC ÷ volume, abonnement compris."""
+    prix = (Decimal(str(montant_ttc)) / Decimal(str(volume))).quantize(Decimal("0.0001"))
+    return tarif_prix_fixe(prix, nom=f"Taux de la dernière facture {prix} €/m³")
+
+
 def charger_tarif_config(config: dict[str, Any]) -> Tarif | None:
     """Tarif de l'entrée (lecture de fichier : à appeler hors de la boucle d'événements).
 
@@ -86,6 +95,8 @@ def charger_tarif_config(config: dict[str, Any]) -> Tarif | None:
     """
     if config.get(CONF_SOURCE) == SOURCE_ENTITE_PRIX:
         return None
+    if config.get(CONF_SOURCE) == SOURCE_TAUX_FACTURE:
+        return tarif_taux_facture(config[CONF_MONTANT_FACTURE], config[CONF_VOLUME_FACTURE])
     if config.get(CONF_SOURCE) == SOURCE_PREREGLAGE:
         tarif = charger_tarif(config[CONF_PREREGLAGE])
         return tarif if config.get(CONF_ASSAINISSEMENT, True) else sans_assainissement(tarif)
@@ -122,6 +133,8 @@ class SuiviFacture:
     _averti: bool = False
     reperes: dict[str, str] = field(default_factory=dict)  # index au début du jour et du mois
     store: Store | None = None
+    factures: list[dict[str, Any]] = field(default_factory=list)  # saisies, de la plus ancienne à la récente
+    store_factures: Store | None = None
 
     @property
     def prix_moyen_seul(self) -> bool:
@@ -234,8 +247,7 @@ class SuiviFacture:
             jour = dt_util.now().date()
             self._avancer_reperes(index, jour)
             self.etat = self.calculer(index, jour, self.reperes)
-        for ecouteur in list(self._ecouteurs):
-            ecouteur()
+        self.prevenir()
 
     @callback
     def _avancer_reperes(self, index: Decimal, jour: date) -> None:
@@ -253,6 +265,12 @@ class SuiviFacture:
                 change = True
         if change and self.store is not None:
             self.store.async_delay_save(lambda: dict(self.reperes), 1)
+
+    @callback
+    def prevenir(self) -> None:
+        """Prévient les capteurs (nouvelle facture saisie, par exemple)."""
+        for ecouteur in list(self._ecouteurs):
+            ecouteur()
 
     @callback
     def ecouter(self, ecouteur: Callable[[], None]) -> Callable[[], None]:

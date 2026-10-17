@@ -38,6 +38,10 @@ views:
       name: Ce mois-ci
       icon: mdi:calendar-month
     - type: tile
+      entity: sensor.facture_d_eau_ecart_facture
+      name: Écart dernière facture
+      icon: mdi:receipt-text-check
+    - type: tile
       entity: sensor.facture_d_eau_prix_marginal
       name: Prix du prochain m³
       icon: mdi:cash

@@ -29,6 +29,7 @@ CLES = (
     "cout_releve",
     "cout_jour",
     "cout_mois",
+    "ecart_facture",
     "estimation",
     "prix_marginal",
     "prix_moyen",
@@ -94,6 +95,12 @@ def section(nom: str, maximum: int) -> dict:
             },
             {"type": "tile", "entity": e["cout_jour"], "name": "Aujourd'hui", "icon": "mdi:calendar-today"},
             {"type": "tile", "entity": e["cout_mois"], "name": "Ce mois-ci", "icon": "mdi:calendar-month"},
+            {
+                "type": "tile",
+                "entity": e["ecart_facture"],
+                "name": "Écart dernière facture",
+                "icon": "mdi:receipt-text-check",
+            },
             {"type": "tile", "entity": e["prix_marginal"], "name": "Prix du prochain m³", "icon": "mdi:cash"},
             {"type": "tile", "entity": e["prix_moyen"], "name": "Prix moyen", "icon": "mdi:scale-balance"},
             {

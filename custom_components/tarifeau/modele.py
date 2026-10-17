@@ -18,7 +18,9 @@ Format YAML (exemple complet : ``tarifs/grand_besancon_regie.yaml``) ::
           eau_potable:
             tva: 5.5
             abonnements:
-              - {nom: Abonnement, montant_ht_an: 15.00}
+              - nom: Abonnement
+                montant_ht_an: 15.00        # compteur le plus courant (DN 15)
+                par_diametre: {15: 15.00, 20: 22.50, 30: 60.00}   # facultatif : DN (mm) → € HT/an
             composantes:
               - nom: Part de la collectivité
                 tranches:
@@ -102,6 +104,7 @@ class Abonnement:
     nom: str
     montant_ht_an: Decimal
     source: str | None = None
+    par_diametre: tuple[tuple[int, Decimal], ...] = ()  # (DN en mm, € HT/an), si le tarif en dépend
 
 
 @dataclass(frozen=True)
@@ -239,6 +242,17 @@ def _tranches(donnees: dict, chemin: str) -> tuple[Tranche, ...]:
     return tuple(tranches)
 
 
+def _par_diametre(donnees: Any, chemin: str) -> tuple[tuple[int, Decimal], ...]:
+    _exiger(isinstance(donnees, dict), chemin, "dictionnaire attendu (DN en mm → € HT/an)")
+    table = []
+    for dn, montant in donnees.items():
+        _exiger(
+            isinstance(dn, int) and not isinstance(dn, bool) and dn > 0, chemin, f"diamètre invalide : {dn!r}"
+        )
+        table.append((dn, _decimal(montant, f"{chemin}.{dn}")))
+    return tuple(sorted(table))
+
+
 def _service(code: str, donnees: Any, chemin: str) -> Service:
     _exiger(code in SERVICES, chemin, f"service inconnu (attendus : {', '.join(SERVICES)})")
     donnees = _cles(donnees, chemin, {"tva", "abonnements", "composantes"}, {"tva"})
@@ -247,12 +261,13 @@ def _service(code: str, donnees: Any, chemin: str) -> Service:
     abonnements = []
     for i, brut in enumerate(_liste(donnees.get("abonnements", []), f"{chemin}.abonnements")):
         c = f"{chemin}.abonnements[{i}]"
-        brut = _cles(brut, c, {"nom", "montant_ht_an", "source"}, {"nom", "montant_ht_an"})
+        brut = _cles(brut, c, {"nom", "montant_ht_an", "source", "par_diametre"}, {"nom", "montant_ht_an"})
         abonnements.append(
             Abonnement(
                 _texte(brut["nom"], f"{c}.nom"),
                 _decimal(brut["montant_ht_an"], f"{c}.montant_ht_an"),
                 _url(brut["source"], f"{c}.source") if "source" in brut else None,
+                _par_diametre(brut.get("par_diametre", {}), f"{c}.par_diametre"),
             )
         )
     composantes = []
@@ -358,6 +373,33 @@ def tarif_prix_fixe(
     service = Service("autre", Decimal(0), (), (composante,))
     periode = Periode(debut, None, (service,), source, date_source or debut)
     return Tarif("prix_fixe", nom or f"Prix fixe {prix} €/m³", (periode,))
+
+
+def diametres(tarif: Tarif) -> list[int]:
+    """Diamètres de compteur (DN, mm) dont l'abonnement est connu, toutes périodes confondues."""
+    return sorted(
+        {dn for p in tarif.periodes for s in p.services for a in s.abonnements for dn, _ in a.par_diametre}
+    )
+
+
+def avec_diametre(tarif: Tarif, diametre: int) -> Tarif:
+    """Même tarif, avec l'abonnement du compteur ``diametre`` (DN, mm).
+
+    Un abonnement sans montant pour ce diamètre garde son montant par défaut. Les factures types
+    (calculées pour le compteur le plus courant) ne s'appliquent plus si un montant change.
+    """
+
+    def abonnement(a: Abonnement) -> Abonnement:
+        return replace(a, montant_ht_an=dict(a.par_diametre).get(diametre, a.montant_ht_an))
+
+    periodes = []
+    for p in tarif.periodes:
+        services = tuple(
+            replace(s, abonnements=tuple(abonnement(a) for a in s.abonnements)) for s in p.services
+        )
+        change = services != p.services
+        periodes.append(replace(p, services=services, factures_types=() if change else p.factures_types))
+    return replace(tarif, periodes=tuple(periodes))
 
 
 def sans_assainissement(tarif: Tarif) -> Tarif:

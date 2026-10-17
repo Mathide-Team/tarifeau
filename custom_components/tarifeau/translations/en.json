@@ -54,6 +54,13 @@
           "montant_facture": "Total incl. VAT",
           "volume_facture": "Billed volume"
         }
+      },
+      "diametre": {
+        "title": "Meter diameter",
+        "description": "This tariff's standing charge depends on the meter diameter (DN, in mm), printed on the bill or on the meter. DN 15 is the most common for a house.",
+        "data": {
+          "diametre": "Diameter"
+        }
       }
     },
     "error": {
@@ -123,6 +130,13 @@
         "data": {
           "montant_facture": "Total incl. VAT",
           "volume_facture": "Billed volume"
+        }
+      },
+      "diametre": {
+        "title": "Meter diameter",
+        "description": "This tariff's standing charge depends on the meter diameter (DN, in mm), printed on the bill or on the meter. DN 15 is the most common for a house.",
+        "data": {
+          "diametre": "Diameter"
         }
       }
     },

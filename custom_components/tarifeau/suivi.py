@@ -24,6 +24,7 @@ from .calcul import Facture, Marginal, arrondi_euros, consommation, facture_peri
 from .const import (
     CONF_ASSAINISSEMENT,
     CONF_DATE_RELEVE,
+    CONF_DIAMETRE,
     CONF_ENTITE_PRIX,
     CONF_FACTURATION,
     CONF_INDEX,
@@ -38,7 +39,7 @@ from .const import (
     SOURCE_TAUX_FACTURE,
     UNITES_INDEX,
 )
-from .modele import Tarif, charger_tarif, prolonger, sans_assainissement, tarif_prix_fixe
+from .modele import Tarif, avec_diametre, charger_tarif, prolonger, sans_assainissement, tarif_prix_fixe
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,6 +100,8 @@ def charger_tarif_config(config: dict[str, Any]) -> Tarif | None:
         return tarif_taux_facture(config[CONF_MONTANT_FACTURE], config[CONF_VOLUME_FACTURE])
     if config.get(CONF_SOURCE) == SOURCE_PREREGLAGE:
         tarif = charger_tarif(config[CONF_PREREGLAGE])
+        if CONF_DIAMETRE in config:
+            tarif = avec_diametre(tarif, config[CONF_DIAMETRE])
         return tarif if config.get(CONF_ASSAINISSEMENT, True) else sans_assainissement(tarif)
     return tarif_prix_fixe(config[CONF_PRIX_FIXE])
 

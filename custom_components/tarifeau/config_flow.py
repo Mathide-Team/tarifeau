@@ -17,21 +17,26 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CHAMPS_SOURCE,
     CONF_ASSAINISSEMENT,
     CONF_DATE_RELEVE,
     CONF_ENTITE_PRIX,
     CONF_FACTURATION,
     CONF_INDEX,
     CONF_INDEX_RELEVE,
+    CONF_MONTANT_FACTURE,
     CONF_NOM,
     CONF_PREREGLAGE,
     CONF_PRIX_FIXE,
     CONF_SOURCE,
+    CONF_VOLUME_FACTURE,
     DOMAIN,
     FACTURATIONS,
     NOM_PAR_DEFAUT,
+    SOURCE_ENTITE_PRIX,
     SOURCE_PREREGLAGE,
     SOURCE_PRIX_FIXE,
+    SOURCE_TAUX_FACTURE,
     SOURCES,
     STATE_CLASSES_INDEX,
     UNITES_INDEX,
@@ -119,6 +124,22 @@ def _schema_entite_prix() -> vol.Schema:
     )
 
 
+def _schema_taux_facture(actuel: dict[str, Any]) -> vol.Schema:
+    def nombre(unite: str) -> selector.NumberSelector:
+        return selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0, step="any", unit_of_measurement=unite, mode=selector.NumberSelectorMode.BOX
+            )
+        )
+
+    return vol.Schema(
+        {
+            vol.Required(CONF_MONTANT_FACTURE, default=actuel.get(CONF_MONTANT_FACTURE, 0)): nombre("€"),
+            vol.Required(CONF_VOLUME_FACTURE, default=actuel.get(CONF_VOLUME_FACTURE, 0)): nombre("m³"),
+        }
+    )
+
+
 def _verifier_entite_prix(hass: HomeAssistant, entity_id: str) -> str | None:
     """Code d'erreur si l'entité ne donne pas un prix au m³ exploitable, sinon ``None``."""
     etat = hass.states.get(entity_id)
@@ -184,6 +205,8 @@ class _EtapesTarif:
                 return await self.async_step_prereglage()
             if user_input[CONF_SOURCE] == SOURCE_PRIX_FIXE:
                 return await self.async_step_prix_fixe()
+            if user_input[CONF_SOURCE] == SOURCE_TAUX_FACTURE:
+                return await self.async_step_taux_facture()
             return await self.async_step_entite_prix()
         return self.async_show_form(
             step_id="tarif", data_schema=_schema_source(self._actuel().get(CONF_SOURCE, SOURCE_PREREGLAGE))
@@ -192,10 +215,7 @@ class _EtapesTarif:
     async def async_step_prereglage(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Choix d'un tarif de collectivité."""
         if user_input is not None:
-            self._donnees.update(user_input)
-            self._donnees.pop(CONF_PRIX_FIXE, None)
-            self._donnees.pop(CONF_ENTITE_PRIX, None)
-            return await self._apres_tarif()
+            return await self._garder(SOURCE_PREREGLAGE, user_input)
         options = await _noms_prereglages(self.hass)
         return self.async_show_form(
             step_id="prereglage", data_schema=_schema_prereglage(options, self._actuel())
@@ -204,11 +224,7 @@ class _EtapesTarif:
     async def async_step_prix_fixe(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Prix TTC au m³, abonnement compris."""
         if user_input is not None:
-            self._donnees.update(user_input)
-            self._donnees.pop(CONF_PREREGLAGE, None)
-            self._donnees.pop(CONF_ASSAINISSEMENT, None)
-            self._donnees.pop(CONF_ENTITE_PRIX, None)
-            return await self._apres_tarif()
+            return await self._garder(SOURCE_PRIX_FIXE, user_input)
         return self.async_show_form(step_id="prix_fixe", data_schema=_schema_prix_fixe(self._actuel()))
 
     async def async_step_entite_prix(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -219,13 +235,32 @@ class _EtapesTarif:
             if erreur:
                 erreurs[CONF_ENTITE_PRIX] = erreur
             else:
-                self._donnees.update(user_input)
-                for cle in (CONF_PREREGLAGE, CONF_ASSAINISSEMENT, CONF_PRIX_FIXE):
-                    self._donnees.pop(cle, None)
-                return await self._apres_tarif()
+                return await self._garder(SOURCE_ENTITE_PRIX, user_input)
         actuel = {**self._actuel(), **(user_input or {})}
         schema = self.add_suggested_values_to_schema(_schema_entite_prix(), actuel)
         return self.async_show_form(step_id="entite_prix", data_schema=schema, errors=erreurs)
+
+    async def async_step_taux_facture(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Montant TTC et volume de la dernière facture : taux effectif = montant ÷ volume."""
+        erreurs: dict[str, str] = {}
+        if user_input is not None:
+            if user_input[CONF_VOLUME_FACTURE] <= 0:
+                erreurs[CONF_VOLUME_FACTURE] = "volume_nul"
+            else:
+                return await self._garder(SOURCE_TAUX_FACTURE, user_input)
+        actuel = {**self._actuel(), **(user_input or {})}
+        return self.async_show_form(
+            step_id="taux_facture", data_schema=_schema_taux_facture(actuel), errors=erreurs
+        )
+
+    async def _garder(self, source: str, saisie: dict[str, Any]) -> ConfigFlowResult:
+        """Enregistre les champs de ``source`` et efface ceux des autres sources."""
+        for autre, champs in CHAMPS_SOURCE.items():
+            if autre != source:
+                for champ in champs:
+                    self._donnees.pop(champ, None)
+        self._donnees.update(saisie)
+        return await self._apres_tarif()
 
     async def async_step_releve(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Date et index de la dernière relève (repris de la facture)."""

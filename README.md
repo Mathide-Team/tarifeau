@@ -20,7 +20,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
 3. **Paramètres → Appareils et services → Ajouter une intégration → tarifeau**, puis :
    1. le **capteur d'index** du compteur (m³ ou L, `state_class` `total_increasing` ou `total`), par exemple « Compteur eau - Volume total » d'[Esphome-Compteur-wmbus](https://github.com/Mathide-Team/Esphome-Compteur-wmbus). Une facture par compteur : une par voisin, par exemple ;
-   2. la **source du tarif** : le tarif d'une collectivité (avec ou sans assainissement collectif), un prix fixe TTC au m³, ou une **entité de prix** (voir plus bas) ;
+   2. la **source du tarif** : le tarif d'une collectivité (avec ou sans assainissement collectif), un prix fixe TTC au m³, le **taux de ta dernière facture** (montant TTC ÷ volume), ou une **entité de prix** (voir plus bas) ;
    3. la **dernière relève** : facturation annuelle ou semestrielle, date et index, repris de ta dernière facture.
 
    Ensuite, **Configurer** permet de changer de tarif ou de saisir une nouvelle relève à chaque facture.
@@ -50,6 +50,27 @@ Ta collectivité n'a pas encore de préréglage ? [HydroTarif](https://github.co
 - Le calcul reprend chaque nouveau prix dès qu'il est publié. Si l'entité devient indisponible, le dernier prix connu est conservé.
 - Les attributs `source` et `date_source` reprennent la page SISPEA et la date d'application (données de l'année N, appliquées au 1er janvier de N+1).
 - **Limite** : c'est un **prix moyen** pour 120 m³ par an, abonnement compris. Il n'y a ni tranches ni abonnement séparé, et le « prix du prochain m³ » vaut ce prix moyen (attribut `prix_moyen_seul: true`). Un préréglage reste plus juste : voir [tarifs/CONTRIBUER.md](custom_components/tarifeau/tarifs/CONTRIBUER.md).
+
+## Recaler sur une facture réelle
+
+À chaque facture reçue, appelle l'action **« Saisir une facture »** (`tarifeau.saisir_facture`), depuis Outils de développement → Actions ou depuis une automatisation :
+
+```yaml
+action: tarifeau.saisir_facture
+data:
+  config_entry_id: 01J…  # l'entrée « Facture d'eau »
+  debut: "2026-01-01"    # relève précédente
+  fin: "2026-07-01"      # relève de cette facture
+  volume: 60             # m³ facturés
+  montant_ttc: 251.37
+  index_releve: 160      # facultatif
+```
+
+- L'action compare la facture au calcul de l'intégration sur la même période. Le capteur **« Écart avec la dernière facture »** (en €) donne le montant facturé, le calcul, l'écart en %, le taux effectif et les 12 dernières factures. L'action renvoie aussi ces valeurs en réponse.
+- La **relève est recalée** : la date et l'index deviennent ceux de la facture. Sans index, la relève avance du volume facturé, à condition que la facture parte de la relève actuelle. Une facture plus ancienne que la relève est seulement gardée dans l'historique.
+- Si l'écart dépasse **10 %**, une alerte apparaît dans Paramètres → Réparations : tarif changé, fuite, compteur remplacé ou faute de frappe. Elle disparaît avec la prochaine facture qui reste sous le seuil.
+- Avec la source « Taux de la dernière facture », chaque saisie met aussi le taux à jour.
+- L'historique (60 factures au plus) est gardé dans le stockage de Home Assistant, et supprimé avec l'entrée.
 
 ## Tableau de bord
 

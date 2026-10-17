@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.template import Template
 from homeassistant.util import slugify
 
-from custom_components.tarifeau.sensor import CAPTEURS
+from custom_components.tarifeau.sensor import CAPTEURS, ECART
 from tests.test_sensor import ATTRS, INDEX, _demarrer, _entree
 
 RACINE = Path(__file__).parent.parent
@@ -34,7 +34,7 @@ def _entites(noeud) -> set[str]:
 
 
 def test_cles_alignees_sur_les_capteurs() -> None:
-    assert set(generer.CLES) == {d.key for d in CAPTEURS}
+    assert set(generer.CLES) == {d.key for d in CAPTEURS} | {ECART.key}
 
 
 @pytest.mark.parametrize(

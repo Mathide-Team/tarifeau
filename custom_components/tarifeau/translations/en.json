@@ -46,6 +46,14 @@
         "data": {
           "entite_prix": "Price sensor (€/m³)"
         }
+      },
+      "taux_facture": {
+        "title": "Last bill rate",
+        "description": "Enter the total (incl. VAT) and volume of your last bill: the price used will be total ÷ volume, standing charges included. It is an average price without tiers. It is updated every time you enter a bill with the \"Enter a bill\" action.",
+        "data": {
+          "montant_facture": "Total incl. VAT",
+          "volume_facture": "Billed volume"
+        }
       }
     },
     "error": {
@@ -55,7 +63,8 @@
       "index_incoherent": "This index is above the current meter index.",
       "date_future": "The date is in the future.",
       "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
-      "prix_indisponible": "This sensor's price is currently unavailable."
+      "prix_indisponible": "This sensor's price is currently unavailable.",
+      "volume_nul": "Volume must be greater than zero."
     },
     "abort": {
       "already_configured": "This sensor already has a bill."
@@ -107,6 +116,14 @@
         "data": {
           "entite_prix": "Price sensor (€/m³)"
         }
+      },
+      "taux_facture": {
+        "title": "Last bill rate",
+        "description": "Enter the total (incl. VAT) and volume of your last bill: the price used will be total ÷ volume, standing charges included. It is an average price without tiers. It is updated every time you enter a bill with the \"Enter a bill\" action.",
+        "data": {
+          "montant_facture": "Total incl. VAT",
+          "volume_facture": "Billed volume"
+        }
       }
     },
     "error": {
@@ -116,7 +133,8 @@
       "index_incoherent": "This index is above the current meter index.",
       "date_future": "The date is in the future.",
       "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
-      "prix_indisponible": "This sensor's price is currently unavailable."
+      "prix_indisponible": "This sensor's price is currently unavailable.",
+      "volume_nul": "Volume must be greater than zero."
     }
   },
   "selector": {
@@ -124,7 +142,8 @@
       "options": {
         "prereglage": "Local authority tariff",
         "prix_fixe": "Fixed price per m³",
-        "entite_prix": "Price entity (HydroTarif…)"
+        "entite_prix": "Price entity (HydroTarif…)",
+        "taux_facture": "Last bill rate"
       }
     },
     "facturation": {
@@ -159,7 +178,62 @@
       },
       "cout_mois": {
         "name": "Cost this month"
+      },
+      "ecart_facture": {
+        "name": "Difference with last bill"
       }
+    }
+  },
+  "services": {
+    "saisir_facture": {
+      "name": "Enter a bill",
+      "description": "Compares a received bill with the calculation, stores it in the history and resets the meter reading (date and index) to this bill.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Bill",
+          "description": "tarifeau entry."
+        },
+        "debut": {
+          "name": "Period start",
+          "description": "Previous meter reading date, printed on the bill."
+        },
+        "fin": {
+          "name": "Period end",
+          "description": "Meter reading date of this bill."
+        },
+        "volume": {
+          "name": "Billed volume",
+          "description": "Consumption for the period, in m³."
+        },
+        "montant_ttc": {
+          "name": "Total incl. VAT",
+          "description": "Bill total, standing charges included."
+        },
+        "index_releve": {
+          "name": "Meter index",
+          "description": "Meter index at the end of the period. Without it, the reading moves forward by the billed volume if the bill starts at the current reading."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "entree_inconnue": {
+      "message": "tarifeau entry not found or not loaded."
+    },
+    "periode_invalide": {
+      "message": "The period end must be after its start."
+    },
+    "date_future": {
+      "message": "The period end is in the future."
+    },
+    "index_incoherent": {
+      "message": "The meter index exceeds the current meter index ({actuel} m³)."
+    }
+  },
+  "issues": {
+    "ecart_facture": {
+      "title": "{nom}: {ecart_pct} % difference with the bill",
+      "description": "The bill from {debut} to {fin} is {montant} €, while the calculation gives {calcul} €: more than {seuil} % apart.\n\nPossible causes: the tariff changed (pick an up-to-date preset or report it in the repository), a leak, a replaced meter or a typo. This alert goes away with the next bill within the threshold."
     }
   }
 }

@@ -86,6 +86,7 @@ async def test_capteurs_au_1er_avril(hass: HomeAssistant) -> None:
     ids = await _demarrer(hass, _entree(hass))
     assert set(ids) == {
         "cout_releve",
+        "ecart_facture",
         "cout_jour",
         "cout_mois",
         "estimation",

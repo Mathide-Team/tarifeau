@@ -21,7 +21,7 @@ from homeassistant.util import slugify
 
 from . import TarifeauConfigEntry
 from .calcul import Facture, arrondi_euros
-from .const import DOMAIN
+from .const import DOMAIN, SEUIL_ECART
 from .modele import prolonger
 from .suivi import Etat, SuiviFacture
 
@@ -152,7 +152,17 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: TarifeauConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     """Crée les capteurs de l'entrée."""
-    async_add_entities(CapteurFacture(entry, description) for description in CAPTEURS)
+    async_add_entities(
+        [*(CapteurFacture(entry, description) for description in CAPTEURS), CapteurEcart(entry, ECART)]
+    )
+
+
+ECART = SensorEntityDescription(
+    key="ecart_facture",
+    translation_key="ecart_facture",
+    device_class=SensorDeviceClass.MONETARY,
+    suggested_display_precision=2,
+)
 
 
 class CapteurFacture(RestoreSensor):
@@ -203,3 +213,32 @@ class CapteurFacture(RestoreSensor):
         self._attr_native_value = self.entity_description.valeur(etat)
         if self.entity_description.attributs is not None:
             self._attr_extra_state_attributes = self.entity_description.attributs(etat)
+
+
+class CapteurEcart(CapteurFacture):
+    """Écart entre la dernière facture saisie et le calcul (action ``tarifeau.saisir_facture``)."""
+
+    def __init__(self, entry: TarifeauConfigEntry, description: SensorEntityDescription) -> None:
+        super().__init__(entry, description)  # type: ignore[arg-type]
+
+    async def async_added_to_hass(self) -> None:
+        """Lit l'historique, puis suit les nouvelles saisies."""
+        self._attr_native_unit_of_measurement = self.hass.config.currency
+        self._mettre_a_jour()
+        self.async_on_remove(self._suivi.ecouter(self._sur_calcul))
+
+    @callback
+    def _mettre_a_jour(self) -> None:
+        if not self._suivi.factures:
+            return
+        derniere = self._suivi.factures[-1]
+        self._attr_native_value = None if derniere["ecart"] is None else Decimal(str(derniere["ecart"]))
+        self._attr_extra_state_attributes = {
+            **{k: v for k, v in derniere.items() if k != "ecart"},
+            "seuil_pct": SEUIL_ECART,
+            "nombre_factures": len(self._suivi.factures),
+            "historique": [
+                {k: f[k] for k in ("debut", "fin", "volume", "montant_ttc", "ecart_pct")}
+                for f in self._suivi.factures[-12:]
+            ],
+        }

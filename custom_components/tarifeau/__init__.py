@@ -9,14 +9,26 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
+from .factures import async_enregistrer_actions, id_alerte, store_factures
 from .suivi import SuiviFacture, charger_tarif_config
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 type TarifeauConfigEntry = ConfigEntry[SuiviFacture]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Actions de l'intégration (``tarifeau.saisir_facture``)."""
+    async_enregistrer_actions(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TarifeauConfigEntry) -> bool:
@@ -25,7 +37,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: TarifeauConfigEntry) -> 
     tarif = await hass.async_add_executor_job(charger_tarif_config, config)
     store: Store[dict[str, str]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
     reperes = await store.async_load() or {}
-    entry.runtime_data = SuiviFacture(hass, config, tarif, reperes=reperes, store=store)
+    historique = store_factures(hass, entry.entry_id)
+    factures = (await historique.async_load() or {}).get("factures", [])
+    entry.runtime_data = SuiviFacture(
+        hass, config, tarif, reperes=reperes, store=store, factures=factures, store_factures=historique
+    )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.runtime_data.demarrer()
     return True
@@ -41,5 +57,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: TarifeauConfigEntry) ->
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: TarifeauConfigEntry) -> None:
-    """Supprime les repères mémorisés de l'entrée."""
+    """Supprime les repères, l'historique des factures et l'alerte d'écart de l'entrée."""
     await Store(hass, 1, f"{DOMAIN}.{entry.entry_id}").async_remove()
+    await store_factures(hass, entry.entry_id).async_remove()
+    ir.async_delete_issue(hass, DOMAIN, id_alerte(entry.entry_id))

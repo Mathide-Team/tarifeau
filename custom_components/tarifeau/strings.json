@@ -3,14 +3,116 @@
     "step": {
       "user": {
         "title": "Facture d'eau",
-        "description": "Crée une facture d'eau calculée d'après ta consommation. Le capteur d'index et le tarif se règlent à l'étape suivante (bientôt).",
+        "description": "Choisis le capteur d'index de ton compteur, par exemple « Compteur eau - Volume total » du compteur wM-Bus. Une facture par compteur.",
         "data": {
-          "name": "Nom"
+          "name": "Nom",
+          "index_entity": "Capteur d'index"
+        }
+      },
+      "tarif": {
+        "title": "Source du tarif",
+        "description": "D'où vient le prix de l'eau ?",
+        "data": {
+          "source_tarif": "Source"
+        }
+      },
+      "prereglage": {
+        "title": "Tarif de ta collectivité",
+        "description": "Tarifs tirés des délibérations officielles. Ta commune manque ? Voir le guide de contribution du dépôt.",
+        "data": {
+          "prereglage": "Collectivité",
+          "assainissement": "Raccordé au tout-à-l'égout (assainissement collectif)"
+        }
+      },
+      "prix_fixe": {
+        "title": "Prix fixe",
+        "description": "Prix moyen TTC au m³, abonnement compris (celui de ta dernière facture, par exemple).",
+        "data": {
+          "prix_fixe": "Prix TTC"
+        }
+      },
+      "releve": {
+        "title": "Dernière relève",
+        "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève.",
+        "data": {
+          "facturation": "Facturation",
+          "date_releve": "Date de la dernière relève",
+          "index_releve": "Index à la dernière relève"
         }
       }
     },
+    "error": {
+      "capteur_absent": "Capteur introuvable.",
+      "unite": "L'index doit être en m³ ou en L.",
+      "state_class": "Le capteur doit être un index cumulé (state_class total_increasing ou total).",
+      "index_incoherent": "Cet index dépasse l'index actuel du compteur.",
+      "date_future": "La date est dans le futur."
+    },
     "abort": {
-      "already_configured": "Une facture porte déjà ce nom."
+      "already_configured": "Ce capteur a déjà sa facture."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Facture d'eau",
+        "menu_options": {
+          "tarif": "Changer de tarif",
+          "releve": "Nouvelle relève (facture reçue)"
+        }
+      },
+      "tarif": {
+        "title": "Source du tarif",
+        "description": "D'où vient le prix de l'eau ?",
+        "data": {
+          "source_tarif": "Source"
+        }
+      },
+      "prereglage": {
+        "title": "Tarif de ta collectivité",
+        "description": "Tarifs tirés des délibérations officielles. Ta commune manque ? Voir le guide de contribution du dépôt.",
+        "data": {
+          "prereglage": "Collectivité",
+          "assainissement": "Raccordé au tout-à-l'égout (assainissement collectif)"
+        }
+      },
+      "prix_fixe": {
+        "title": "Prix fixe",
+        "description": "Prix moyen TTC au m³, abonnement compris (celui de ta dernière facture, par exemple).",
+        "data": {
+          "prix_fixe": "Prix TTC"
+        }
+      },
+      "releve": {
+        "title": "Dernière relève",
+        "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève.",
+        "data": {
+          "facturation": "Facturation",
+          "date_releve": "Date de la dernière relève",
+          "index_releve": "Index à la dernière relève"
+        }
+      }
+    },
+    "error": {
+      "capteur_absent": "Capteur introuvable.",
+      "unite": "L'index doit être en m³ ou en L.",
+      "state_class": "Le capteur doit être un index cumulé (state_class total_increasing ou total).",
+      "index_incoherent": "Cet index dépasse l'index actuel du compteur.",
+      "date_future": "La date est dans le futur."
+    }
+  },
+  "selector": {
+    "source_tarif": {
+      "options": {
+        "prereglage": "Tarif d'une collectivité",
+        "prix_fixe": "Prix fixe au m³"
+      }
+    },
+    "facturation": {
+      "options": {
+        "annuelle": "Annuelle",
+        "semestrielle": "Semestrielle"
+      }
     }
   }
 }

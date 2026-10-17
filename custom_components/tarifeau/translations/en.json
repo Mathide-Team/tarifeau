@@ -3,14 +3,116 @@
     "step": {
       "user": {
         "title": "Water bill",
-        "description": "Creates a water bill computed from your consumption. The meter index sensor and the tariff will be set in a next step (coming soon).",
+        "description": "Pick the index sensor of your meter, for instance « Compteur eau - Volume total » from the wM-Bus meter. One bill per meter.",
         "data": {
-          "name": "Name"
+          "name": "Name",
+          "index_entity": "Index sensor"
+        }
+      },
+      "tarif": {
+        "title": "Tariff source",
+        "description": "Where does the water price come from?",
+        "data": {
+          "source_tarif": "Source"
+        }
+      },
+      "prereglage": {
+        "title": "Your local authority's tariff",
+        "description": "Tariffs taken from official decisions. Your town is missing? See the contribution guide in the repository.",
+        "data": {
+          "prereglage": "Local authority",
+          "assainissement": "Connected to the public sewer (collective sanitation)"
+        }
+      },
+      "prix_fixe": {
+        "title": "Fixed price",
+        "description": "Average price per m³ including VAT and subscription (from your last bill, for instance).",
+        "data": {
+          "prix_fixe": "Price incl. VAT"
+        }
+      },
+      "releve": {
+        "title": "Last meter reading",
+        "description": "Copy the date and index of your last bill: the cost is computed from that reading.",
+        "data": {
+          "facturation": "Billing",
+          "date_releve": "Date of the last reading",
+          "index_releve": "Index at the last reading"
         }
       }
     },
+    "error": {
+      "capteur_absent": "Sensor not found.",
+      "unite": "The index must be in m³ or L.",
+      "state_class": "The sensor must be a cumulative index (state_class total_increasing or total).",
+      "index_incoherent": "This index is above the current meter index.",
+      "date_future": "The date is in the future."
+    },
     "abort": {
-      "already_configured": "A bill with this name already exists."
+      "already_configured": "This sensor already has a bill."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Water bill",
+        "menu_options": {
+          "tarif": "Change tariff",
+          "releve": "New meter reading (bill received)"
+        }
+      },
+      "tarif": {
+        "title": "Tariff source",
+        "description": "Where does the water price come from?",
+        "data": {
+          "source_tarif": "Source"
+        }
+      },
+      "prereglage": {
+        "title": "Your local authority's tariff",
+        "description": "Tariffs taken from official decisions. Your town is missing? See the contribution guide in the repository.",
+        "data": {
+          "prereglage": "Local authority",
+          "assainissement": "Connected to the public sewer (collective sanitation)"
+        }
+      },
+      "prix_fixe": {
+        "title": "Fixed price",
+        "description": "Average price per m³ including VAT and subscription (from your last bill, for instance).",
+        "data": {
+          "prix_fixe": "Price incl. VAT"
+        }
+      },
+      "releve": {
+        "title": "Last meter reading",
+        "description": "Copy the date and index of your last bill: the cost is computed from that reading.",
+        "data": {
+          "facturation": "Billing",
+          "date_releve": "Date of the last reading",
+          "index_releve": "Index at the last reading"
+        }
+      }
+    },
+    "error": {
+      "capteur_absent": "Sensor not found.",
+      "unite": "The index must be in m³ or L.",
+      "state_class": "The sensor must be a cumulative index (state_class total_increasing or total).",
+      "index_incoherent": "This index is above the current meter index.",
+      "date_future": "The date is in the future."
+    }
+  },
+  "selector": {
+    "source_tarif": {
+      "options": {
+        "prereglage": "Local authority tariff",
+        "prix_fixe": "Fixed price per m³"
+      }
+    },
+    "facturation": {
+      "options": {
+        "annuelle": "Yearly",
+        "semestrielle": "Half-yearly"
+      }
     }
   }
 }

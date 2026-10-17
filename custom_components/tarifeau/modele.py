@@ -323,3 +323,27 @@ def charger_tarif(source: str | Path) -> Tarif:
 def prereglages() -> list[str]:
     """Identifiants des tarifs fournis avec l'intégration."""
     return sorted(p.stem for p in DOSSIER_TARIFS.glob("*.yaml"))
+
+
+def tarif_prix_fixe(prix_ttc_m3: Decimal | int | float | str, debut: date = date(2000, 1, 1)) -> Tarif:
+    """Tarif minimal : un prix TTC au m³, sans abonnement ni TVA séparée (source « prix fixe »)."""
+    prix = _decimal(prix_ttc_m3, "prix_fixe")
+    composante = Composante("Prix au m³ (TTC)", (Tranche(None, prix),))
+    service = Service("autre", Decimal(0), (), (composante,))
+    periode = Periode(debut, None, (service,), "https://github.com/Mathide-Team/tarifeau", debut)
+    return Tarif("prix_fixe", f"Prix fixe {prix} €/m³", (periode,))
+
+
+def sans_assainissement(tarif: Tarif) -> Tarif:
+    """Même tarif, sans le service d'assainissement (logement en assainissement non collectif)."""
+    periodes = tuple(
+        Periode(
+            p.debut,
+            p.fin,
+            tuple(s for s in p.services if s.code != "assainissement"),
+            p.source,
+            p.date_source,
+        )
+        for p in tarif.periodes
+    )
+    return Tarif(tarif.id, tarif.nom, periodes, tarif.facturation, tarif.tranches)

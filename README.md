@@ -14,11 +14,16 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 
 ## Installation (HACS)
 
-> Squelette (issue #1) : l'intégration s'installe et apparaît dans **Ajouter une intégration**, sans capteur pour l'instant.
+> En cours : la configuration est complète, les capteurs arrivent avec l'issue #5.
 
 1. HACS → menu ⋮ → **Dépôts personnalisés** → `https://github.com/Mathide-Team/tarifeau`, catégorie **Intégration**.
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
-3. **Paramètres → Appareils et services → Ajouter une intégration → tarifeau**.
+3. **Paramètres → Appareils et services → Ajouter une intégration → tarifeau**, puis :
+   1. le **capteur d'index** du compteur (m³ ou L, `state_class` `total_increasing` ou `total`), par exemple « Compteur eau - Volume total » d'[Esphome-Compteur-wmbus](https://github.com/Mathide-Team/Esphome-Compteur-wmbus). Une facture par compteur : une par voisin, par exemple ;
+   2. la **source du tarif** : le tarif d'une collectivité (avec ou sans assainissement collectif) ou un prix fixe TTC au m³ ;
+   3. la **dernière relève** : facturation annuelle ou semestrielle, date et index, repris de ta dernière facture.
+
+   Ensuite, **Configurer** permet de changer de tarif ou de saisir une nouvelle relève à chaque facture.
 
 ## Décrire un tarif
 

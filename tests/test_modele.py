@@ -225,3 +225,14 @@ def test_sources_par_composante_et_abonnement() -> None:
         .services[0]
     )
     assert service.abonnements[0].source == service.composantes[0].source == URL
+
+
+def test_prix_fixe_et_sans_assainissement() -> None:
+    from custom_components.tarifeau.modele import sans_assainissement, tarif_prix_fixe
+
+    fixe = tarif_prix_fixe("4,20")
+    facture = facture_sur_un_an(fixe.periode_au(date(2026, 1, 1)), 10)
+    assert facture.total_ttc == Decimal("42.00")
+    eau_seule = sans_assainissement(charger_tarif("grand_besancon_regie"))
+    assert [s.code for s in eau_seule.periodes[0].services] == ["eau_potable"]
+    assert facture_sur_un_an(eau_seule.periodes[0], 120).total_ttc == Decimal("248.83")

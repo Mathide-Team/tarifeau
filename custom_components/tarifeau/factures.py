@@ -30,6 +30,7 @@ from .const import (
     CONF_SOURCE,
     CONF_VOLUME_FACTURE,
     DOMAIN,
+    EVENEMENT_ECART,
     HISTORIQUE_MAX,
     SERVICE_SAISIR_FACTURE,
     SEUIL_ECART,
@@ -141,11 +142,27 @@ def _nouvelle_releve(entry: TarifeauConfigEntry, saisie: dict[str, Any]) -> dict
 
 
 def mettre_a_jour_alerte(hass: HomeAssistant, entry: TarifeauConfigEntry, facture: dict[str, Any]) -> None:
-    """Alerte (Paramètres → Réparations) si l'écart dépasse le seuil ; retirée sinon."""
+    """Alerte si l'écart dépasse le seuil ; retirée sinon.
+
+    Deux canaux : Paramètres → Réparations, et l'événement ``tarifeau_ecart_facture`` pour
+    les automatisations (notification ntfy : voir blueprints/automation/tarifeau/).
+    """
     ecart_pct = facture["ecart_pct"]
     if ecart_pct is None or abs(ecart_pct) <= SEUIL_ECART:
         ir.async_delete_issue(hass, DOMAIN, id_alerte(entry.entry_id))
         return
+    hass.bus.async_fire(
+        EVENEMENT_ECART,
+        {
+            "config_entry_id": entry.entry_id,
+            "nom": entry.title,
+            "seuil_pct": SEUIL_ECART,
+            **{
+                k: facture[k]
+                for k in ("debut", "fin", "volume", "montant_ttc", "calcul_ttc", "ecart", "ecart_pct")
+            },
+        },
+    )
     ir.async_create_issue(
         hass,
         DOMAIN,

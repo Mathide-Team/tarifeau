@@ -21,7 +21,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 3. **Paramètres → Appareils et services → Ajouter une intégration → tarifeau**, puis :
    1. le **capteur d'index** du compteur (m³ ou L, `state_class` `total_increasing` ou `total`), par exemple « Compteur eau - Volume total » d'[Esphome-Compteur-wmbus](https://github.com/Mathide-Team/Esphome-Compteur-wmbus). Une facture par compteur : une par voisin, par exemple ;
    2. la **source du tarif** : le tarif d'une collectivité (avec ou sans assainissement collectif), un prix fixe TTC au m³, le **taux de ta dernière facture** (montant TTC ÷ volume), ou une **entité de prix** (voir plus bas) ;
-   3. la **dernière relève**, qui marque le début de la période : date et index repris de ta dernière facture, et durée de la période facturée (1, 2, 3, 4, 6 ou 12 mois, par exemple 3 mois à partir du 1er avril pour une facture trimestrielle).
+   3. la **dernière relève**, qui marque le début de la période : date et index repris de ta dernière facture, et durée de la période facturée (1, 2, 3, 4, 6 ou 12 mois, par exemple 3 mois à partir du 1er avril pour une facture trimestrielle). Si ta facture ne suit pas un rythme régulier, indique aussi la **fin de la période** (par exemple du 05/09/2025 au 18/08/2026) : elle remplace la durée.
 
    Ensuite, **Configurer** permet de changer de tarif ou de saisir une nouvelle relève à chaque facture.
 
@@ -42,8 +42,9 @@ Un appareil « Facture d'eau » par entrée, recalculé à chaque nouvel index (
 | Capteur | Unité | Usage |
 |---|---|---|
 | Coût depuis la dernière relève | € TTC | détail HT, TVA et TTC par service et ligne par ligne en attributs, avec le tarif et sa source |
-| Coût aujourd'hui, coût du mois | € TTC | depuis minuit et depuis le 1er du mois (ou depuis la relève, si elle est plus récente), part d'abonnement comprise |
-| Estimation de la prochaine facture | € TTC | projection à la fin de la période (6 ou 12 mois après la relève), au rythme actuel |
+| Coût aujourd'hui, cette semaine, du mois | € TTC | depuis minuit, depuis lundi et depuis le 1er du mois (ou depuis la relève, si elle est plus récente), part d'abonnement comprise |
+| Coût hier, semaine dernière, mois dernier | € TTC | coût de la période terminée, figé au changement de jour, de semaine ou de mois et gardé au redémarrage. « Inconnu » si Home Assistant ne tournait pas à ce moment-là |
+| Estimation de la prochaine facture | € TTC | projection à la fin de la période (durée choisie après la relève), au rythme actuel |
 | Prix marginal | €/m³ TTC | prix du prochain m³ selon la tranche : **entité de prix pour le tableau de bord Énergie** (Eau) |
 | Prix moyen | €/m³ TTC | total / volume, abonnements compris |
 | Volume depuis la dernière relève | m³ | |
@@ -96,7 +97,7 @@ Pour un autre canal (application mobile, e-mail…), il suffit d'une automatisat
 
 ![Tableau de bord « Facture d'eau » : jauge, prix, coût par jour et par mois, détail de la facture en cours](docs/captures/tableau-de-bord.png)
 
-[`dashboard/facture_eau.yaml`](dashboard/facture_eau.yaml) est une vue « Facture d'eau » faite uniquement de cartes natives : jauge du coût depuis la relève, estimation, prix marginal et prix moyen, volume, tranche, coût par jour et par mois (statistiques), et détail ligne par ligne, regroupé par service (carte Markdown avec la quantité, le prix, le HT, la TVA et le TTC de chaque service, ainsi que le lien vers la délibération). Trois sections par compteur : résumé, coûts, détail. Les captures viennent d'un vrai Home Assistant 2026.2.3, avec un compteur simulé et des statistiques simulées.
+[`dashboard/facture_eau.yaml`](dashboard/facture_eau.yaml) est une vue « Facture d'eau » faite uniquement de cartes natives : jauge du coût depuis la relève, estimation, prix marginal et prix moyen, volume, tranche, coût d'aujourd'hui, d'hier, de cette semaine, de la semaine dernière, du mois et du mois dernier, graphiques du coût par jour, par semaine et par mois (statistiques), et détail ligne par ligne, regroupé par service (carte Markdown avec la quantité, le prix, le HT, la TVA et le TTC de chaque service, ainsi que le lien vers la délibération). Trois sections par compteur : résumé, coûts, détail. Les captures viennent d'un vrai Home Assistant 2026.2.3, avec un compteur simulé et des statistiques simulées.
 
 Il suppose une entrée nommée « Facture d'eau ». Les capteurs ont des identifiants fixes, quelle que soit la langue : `sensor.<nom>_<clé>`, par exemple `sensor.facture_d_eau_prix_marginal`. Pour d'autres noms, ou une section par compteur :
 

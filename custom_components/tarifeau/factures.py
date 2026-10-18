@@ -23,6 +23,7 @@ from homeassistant.util import dt as dt_util
 from .calcul import arrondi_euros, facture_periode
 from .const import (
     CONF_DATE_RELEVE,
+    CONF_FIN_PERIODE,
     CONF_INDEX,
     CONF_INDEX_RELEVE,
     CONF_MONTANT_FACTURE,
@@ -134,6 +135,7 @@ def _nouvelle_releve(entry: TarifeauConfigEntry, saisie: dict[str, Any]) -> dict
         return None  # ancienne facture : historique seulement
     options = {k: v for k, v in config.items() if k not in (CONF_NOM, CONF_INDEX)}
     options[CONF_DATE_RELEVE] = saisie[ATTR_FIN].isoformat()
+    options.pop(CONF_FIN_PERIODE, None)  # la fin saisie valait pour la période facturée
     options[CONF_INDEX_RELEVE] = index
     if config.get(CONF_SOURCE) == SOURCE_TAUX_FACTURE and saisie[ATTR_VOLUME] > 0:
         options[CONF_MONTANT_FACTURE] = saisie[ATTR_MONTANT]

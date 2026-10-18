@@ -33,15 +33,17 @@
       },
       "releve": {
         "title": "Last meter reading",
-        "description": "Copy the date and index of your last bill: the cost is computed from that reading.",
+        "description": "Enter the date and index of your last bill: the cost is computed from that reading. The period ends after the chosen length, or on the end date if you know it.",
         "data": {
           "facturation": "Billing period length",
           "date_releve": "Start of the billing period (last reading)",
+          "fin_periode": "End of the period (optional)",
           "index_releve": "Index at the last reading"
         },
         "data_description": {
-          "facturation": "The period starts on the reading date: for example 3 months from April 1st for a quarterly bill.",
-          "date_releve": "Start date of the period, shown on your last bill (last meter reading)."
+          "facturation": "Default length: the period starts on the reading date, for example 3 months from April 1st for a quarterly bill. Ignored if an end date is set.",
+          "date_releve": "Start date of the period, shown on your last bill (last meter reading).",
+          "fin_periode": "Only if your bill does not follow a regular rhythm (for example from 05/09/2025 to 18/08/2026): the end date then replaces the length. Leave empty to use the length."
         }
       },
       "entite_prix": {
@@ -76,7 +78,8 @@
       "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
       "prix_indisponible": "This sensor's price is currently unavailable.",
       "volume_nul": "Volume must be greater than zero.",
-      "tarif_invalide": "Invalid rate: {erreur}"
+      "tarif_invalide": "Invalid rate: {erreur}",
+      "fin_avant_debut": "The end of the period must be after its start."
     },
     "abort": {
       "already_configured": "This sensor already has a bill."
@@ -116,15 +119,17 @@
       },
       "releve": {
         "title": "Last meter reading",
-        "description": "Copy the date and index of your last bill: the cost is computed from that reading.",
+        "description": "Enter the date and index of your last bill: the cost is computed from that reading. The period ends after the chosen length, or on the end date if you know it.",
         "data": {
           "facturation": "Billing period length",
           "date_releve": "Start of the billing period (last reading)",
+          "fin_periode": "End of the period (optional)",
           "index_releve": "Index at the last reading"
         },
         "data_description": {
-          "facturation": "The period starts on the reading date: for example 3 months from April 1st for a quarterly bill.",
-          "date_releve": "Start date of the period, shown on your last bill (last meter reading)."
+          "facturation": "Default length: the period starts on the reading date, for example 3 months from April 1st for a quarterly bill. Ignored if an end date is set.",
+          "date_releve": "Start date of the period, shown on your last bill (last meter reading).",
+          "fin_periode": "Only if your bill does not follow a regular rhythm (for example from 05/09/2025 to 18/08/2026): the end date then replaces the length. Leave empty to use the length."
         }
       },
       "entite_prix": {
@@ -163,7 +168,8 @@
       "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
       "prix_indisponible": "This sensor's price is currently unavailable.",
       "volume_nul": "Volume must be greater than zero.",
-      "tarif_invalide": "Invalid rate: {erreur}"
+      "tarif_invalide": "Invalid rate: {erreur}",
+      "fin_avant_debut": "The end of the period must be after its start."
     }
   },
   "selector": {
@@ -209,8 +215,20 @@
       "cout_jour": {
         "name": "Cost today"
       },
+      "cout_hier": {
+        "name": "Cost yesterday"
+      },
+      "cout_semaine": {
+        "name": "Cost this week"
+      },
+      "cout_semaine_derniere": {
+        "name": "Cost last week"
+      },
       "cout_mois": {
         "name": "Cost this month"
+      },
+      "cout_mois_dernier": {
+        "name": "Cost last month"
       },
       "ecart_facture": {
         "name": "Difference with last bill"

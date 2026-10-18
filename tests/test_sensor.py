@@ -89,7 +89,11 @@ async def test_capteurs_au_1er_avril(hass: HomeAssistant) -> None:
         "cout_releve",
         "ecart_facture",
         "cout_jour",
+        "cout_hier",
+        "cout_semaine",
+        "cout_semaine_derniere",
         "cout_mois",
+        "cout_mois_dernier",
         "estimation",
         "prix_marginal",
         "prix_moyen",
@@ -314,3 +318,49 @@ async def test_repere_sans_index_ignore(hass: HomeAssistant) -> None:
     etat = entry.runtime_data.calculer(Decimal(130), date(2026, 4, 1), {"jour": "2026-04-01"})
     assert etat.cout_jour is None
     assert etat.cout_mois is None
+
+
+async def test_couts_hier_semaine_et_mois_derniers(hass: HomeAssistant, freezer) -> None:
+    """Issue #36 : coût de la semaine, et coûts figés d'hier, de la semaine et du mois derniers."""
+    freezer.move_to("2026-03-30 08:00:00+02:00")  # lundi
+    await hass.config.async_update(time_zone="Europe/Paris")
+    hass.states.async_set(INDEX, "130", ATTRS)
+    entry = _entree(hass)
+    ids = await _demarrer(hass, entry)
+    for cle in ("cout_hier", "cout_semaine_derniere", "cout_mois_dernier"):
+        assert _valeur(hass, ids[cle]) == "unknown"  # pas encore de période terminée
+    hass.states.async_set(INDEX, "131", ATTRS)
+    await hass.async_block_till_done()
+    lundi = _valeur(hass, ids["cout_jour"])
+    assert _valeur(hass, ids["cout_semaine"]) == lundi
+
+    # Mardi : le coût de lundi est figé dans « hier ».
+    freezer.move_to("2026-03-31 08:00:00+02:00")
+    hass.states.async_set(INDEX, "132", ATTRS)
+    await hass.async_block_till_done()
+    assert _valeur(hass, ids["cout_hier"]) == lundi
+    mars = _valeur(hass, ids["cout_mois"])
+    # La semaine cumule lundi et mardi (à un centime d'arrondi près).
+    cumul = Decimal(lundi) + Decimal(_valeur(hass, ids["cout_jour"]))
+    assert abs(Decimal(_valeur(hass, ids["cout_semaine"])) - cumul) <= Decimal("0.01")
+
+    # Mercredi 1er avril : le coût de mars est figé dans « mois dernier ».
+    freezer.move_to("2026-04-01 08:00:00+02:00")
+    hass.states.async_set(INDEX, "133", ATTRS)
+    await hass.async_block_till_done()
+    assert _valeur(hass, ids["cout_mois_dernier"]) == mars
+    semaine = _valeur(hass, ids["cout_semaine"])
+
+    # Lundi suivant, sans relevé entre-temps : la semaine passée est figée ; « hier » est inconnu
+    # (le dernier jour suivi est le 1er avril, pas dimanche).
+    freezer.move_to("2026-04-06 08:00:00+02:00")
+    hass.states.async_set(INDEX, "134", ATTRS)
+    await hass.async_block_till_done()
+    assert _valeur(hass, ids["cout_semaine_derniere"]) == semaine
+    assert _valeur(hass, ids["cout_hier"]) == "unknown"
+
+    # Les coûts figés survivent à un redémarrage (repères dans le Store).
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert _valeur(hass, ids["cout_semaine_derniere"]) == semaine
+    assert _valeur(hass, ids["cout_mois_dernier"]) == mars

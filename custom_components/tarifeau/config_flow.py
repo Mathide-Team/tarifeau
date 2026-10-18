@@ -23,6 +23,7 @@ from .const import (
     CONF_DIAMETRE,
     CONF_ENTITE_PRIX,
     CONF_FACTURATION,
+    CONF_FIN_PERIODE,
     CONF_INDEX,
     CONF_INDEX_RELEVE,
     CONF_MONTANT_FACTURE,
@@ -202,6 +203,9 @@ def _schema_releve(actuel: dict[str, Any], index_m3: float | None) -> vol.Schema
             vol.Required(CONF_DATE_RELEVE, default=actuel.get(CONF_DATE_RELEVE, date.today().isoformat())): (
                 selector.DateSelector()
             ),
+            vol.Optional(CONF_FIN_PERIODE, description={"suggested_value": actuel.get(CONF_FIN_PERIODE)}): (
+                selector.DateSelector()
+            ),
             vol.Required(CONF_INDEX_RELEVE, default=index_defaut): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0, step="any", unit_of_measurement="m³", mode=selector.NumberSelectorMode.BOX
@@ -215,6 +219,8 @@ def _verifier_releve(hass: HomeAssistant, entity_id: str, saisie: dict[str, Any]
     erreurs: dict[str, str] = {}
     if date.fromisoformat(saisie[CONF_DATE_RELEVE]) > date.today():
         erreurs[CONF_DATE_RELEVE] = "date_future"
+    if (fin := saisie.get(CONF_FIN_PERIODE)) and fin <= saisie[CONF_DATE_RELEVE]:
+        erreurs[CONF_FIN_PERIODE] = "fin_avant_debut"
     index_m3 = index_actuel_m3(hass, entity_id)
     if index_m3 is not None and saisie[CONF_INDEX_RELEVE] > index_m3 + 1e-6:
         erreurs[CONF_INDEX_RELEVE] = "index_incoherent"
@@ -349,6 +355,7 @@ class _EtapesTarif:
         if user_input is not None:
             erreurs = _verifier_releve(self.hass, self._index_entity(), user_input)
             if not erreurs:
+                self._donnees.pop(CONF_FIN_PERIODE, None)  # champ vidé : retour à la durée
                 self._donnees.update(user_input)
                 return self._terminer()
         actuel = {**self._actuel(), **(user_input or {})}

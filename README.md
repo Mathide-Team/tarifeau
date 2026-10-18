@@ -150,7 +150,7 @@ Le moteur (`custom_components/tarifeau/calcul.py`, Python pur) reprend les règl
 
 - la période facturée est découpée au 1er janvier et à chaque changement de tarif. Le volume est réparti **au prorata des jours** ;
 - l'**abonnement** est proratisé au jour près (365 ou 366 jours) ;
-- les **tranches** sont annuelles. Elles s'appliquent au volume cumulé depuis le 1er janvier (`cumul_annuel`, par défaut), ou avec des seuils proratisés selon la durée de la facture (`prorata`). La gratuité des premiers m³ est une tranche à 0 € ;
+- les **tranches** sont annuelles. Elles s'appliquent au volume cumulé depuis le 1er janvier (`cumul_annuel`, par défaut), ou avec des seuils proratisés selon la durée de la facture (`prorata`). Le préréglage Grand Besançon utilise `prorata`, vérifié sur une facture réelle (3 m³ x 348 / 365 = 2,86 m³ gratuits). La gratuité des premiers m³ est une tranche à 0 € ;
 - on calcule le HT par ligne, la TVA **par service** (5,5 % pour l'eau potable, 10 % pour l'assainissement), puis le TTC. Seul le total est arrondi au centime ;
 - sorties pour les capteurs : **prix marginal** du prochain m³ (TTC), **prix moyen**, tranche actuelle et volume restant avant la tranche suivante ;
 - si l'index revient en arrière, le compteur est considéré comme remplacé.

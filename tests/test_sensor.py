@@ -1,5 +1,6 @@
 """Capteurs de la facture (issue #5)."""
 
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
@@ -247,7 +248,12 @@ def test_ajouter_mois(jour, mois, attendu) -> None:
     assert ajouter_mois(jour, mois) == attendu
 
 
-async def test_cout_du_jour_et_du_mois(hass: HomeAssistant, freezer, hass_storage) -> None:
+async def test_cout_du_jour_et_du_mois(hass: HomeAssistant, freezer, hass_storage, monkeypatch) -> None:
+    # Règle ``cumul_annuel`` : 1 m³ de plus coûte exactement le prix de la 2e tranche.
+    monkeypatch.setattr(
+        "custom_components.tarifeau.suivi.charger_tarif",
+        lambda *a: replace(charger_tarif(*a), tranches="cumul_annuel"),
+    )
     freezer.move_to("2026-04-01 08:00:00+02:00")
     await hass.config.async_update(time_zone="Europe/Paris")
     hass.states.async_set(INDEX, "130", ATTRS)

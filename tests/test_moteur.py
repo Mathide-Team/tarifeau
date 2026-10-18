@@ -1,5 +1,6 @@
 """Moteur de calcul : prorata, tranches, changement de tarif, prix marginal (issue #3)."""
 
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
@@ -61,9 +62,11 @@ def test_annee_2026_en_une_facture_retombe_sur_484_23() -> None:
 
 
 def test_deux_semestres_valent_l_annee() -> None:
-    s1 = facture_periode(BESANCON, date(2026, 1, 1), date(2026, 7, 1), 60)
-    s2 = facture_periode(BESANCON, date(2026, 7, 1), date(2027, 1, 1), 60, cumul_annee=60)
-    annee = facture_sur_un_an(BESANCON.periode_au(date(2026, 1, 1)), 120)
+    """Règle ``cumul_annuel`` : deux semestres valent exactement l'année."""
+    cumul = replace(BESANCON, tranches="cumul_annuel")
+    s1 = facture_periode(cumul, date(2026, 1, 1), date(2026, 7, 1), 60)
+    s2 = facture_periode(cumul, date(2026, 7, 1), date(2027, 1, 1), 60, cumul_annee=60)
+    annee = facture_sur_un_an(cumul.periode_au(date(2026, 1, 1)), 120)
     assert _ht(s1) + _ht(s2) == _ht(annee)
     # Arrondi par facture : au plus un centime d'écart avec la facture annuelle.
     assert abs(s1.total_ttc + s2.total_ttc - Decimal("484.23")) <= Decimal("0.01")
@@ -84,6 +87,21 @@ def test_deux_semestres_valent_l_annee() -> None:
         if ligne.libelle == "Part de la collectivité" and ligne.service == "eau_potable"
     ]
     assert [ligne.quantite for ligne in part] == [40, 20]
+
+
+def test_besancon_tranches_proratisees() -> None:
+    """Préréglage Grand Besançon : seuils x jours / 365 (issue #15, facture réelle)."""
+    assert BESANCON.tranches == "prorata"
+    s1 = facture_periode(BESANCON, date(2026, 1, 1), date(2026, 7, 1), 60)
+    part = [
+        ligne
+        for ligne in s1.lignes
+        if ligne.libelle == "Part de la collectivité" and ligne.service == "eau_potable"
+    ]
+    gratuit, usuel = Decimal(3) * 181 / 365, Decimal(100) * 181 / 365
+    assert part[0].quantite == gratuit
+    assert part[1].quantite == usuel - gratuit
+    assert part[2].quantite == 60 - usuel
 
 
 def test_abonnement_au_prorata_des_jours() -> None:

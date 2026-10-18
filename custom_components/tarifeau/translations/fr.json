@@ -3,14 +3,237 @@
     "step": {
       "user": {
         "title": "Facture d'eau",
-        "description": "Crée une facture d'eau calculée d'après ta consommation. Le capteur d'index et le tarif se règlent à l'étape suivante (bientôt).",
+        "description": "Choisis le capteur d'index de ton compteur, par exemple « Compteur eau - Volume total » du compteur wM-Bus. Une facture par compteur.",
         "data": {
-          "name": "Nom"
+          "name": "Nom",
+          "index_entity": "Capteur d'index"
+        }
+      },
+      "tarif": {
+        "title": "Source du tarif",
+        "description": "D'où vient le prix de l'eau ?",
+        "data": {
+          "source_tarif": "Source"
+        }
+      },
+      "prereglage": {
+        "title": "Tarif de ta collectivité",
+        "description": "Tarifs tirés des délibérations officielles. Ta commune manque ? Voir le guide de contribution du dépôt.",
+        "data": {
+          "prereglage": "Collectivité",
+          "assainissement": "Raccordé au tout-à-l'égout (assainissement collectif)"
+        }
+      },
+      "prix_fixe": {
+        "title": "Prix fixe",
+        "description": "Prix moyen TTC au m³, abonnement compris (celui de ta dernière facture, par exemple).",
+        "data": {
+          "prix_fixe": "Prix TTC"
+        }
+      },
+      "releve": {
+        "title": "Dernière relève",
+        "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève.",
+        "data": {
+          "facturation": "Facturation",
+          "date_releve": "Date de la dernière relève",
+          "index_releve": "Index à la dernière relève"
+        }
+      },
+      "entite_prix": {
+        "title": "Entité de prix",
+        "description": "Choisis un capteur de prix au m³, par exemple « Prix total » de l'intégration HydroTarif (données SISPEA de ta commune).\n\nAttention : ce prix est un **prix moyen** calculé sur une facture de 120 m³ par an, abonnement compris. Le calcul n'a ni tranches ni abonnement séparé, et le « prix du prochain m³ » vaut ce prix moyen, pas le vrai prix marginal. Un préréglage de ta collectivité est plus juste s'il existe.",
+        "data": {
+          "entite_prix": "Capteur de prix (€/m³)"
+        }
+      },
+      "taux_facture": {
+        "title": "Taux de la dernière facture",
+        "description": "Reprends le montant TTC et le volume de ta dernière facture : le prix appliqué sera montant ÷ volume, abonnement compris. C'est un prix moyen, sans tranches. À chaque facture saisie avec l'action « Saisir une facture », ce taux est mis à jour.",
+        "data": {
+          "montant_facture": "Montant TTC",
+          "volume_facture": "Volume facturé"
         }
       }
     },
+    "error": {
+      "capteur_absent": "Capteur introuvable.",
+      "unite": "L'index doit être en m³ ou en L.",
+      "state_class": "Le capteur doit être un index cumulé (state_class total_increasing ou total).",
+      "index_incoherent": "Cet index dépasse l'index actuel du compteur.",
+      "date_future": "La date est dans le futur.",
+      "unite_prix": "Le capteur doit être un prix au m³ (unité €/m³).",
+      "prix_indisponible": "Le prix de ce capteur est indisponible pour l'instant.",
+      "volume_nul": "Le volume doit être supérieur à zéro."
+    },
     "abort": {
-      "already_configured": "Une facture porte déjà ce nom."
+      "already_configured": "Ce capteur a déjà sa facture."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Facture d'eau",
+        "menu_options": {
+          "tarif": "Changer de tarif",
+          "releve": "Nouvelle relève (facture reçue)"
+        }
+      },
+      "tarif": {
+        "title": "Source du tarif",
+        "description": "D'où vient le prix de l'eau ?",
+        "data": {
+          "source_tarif": "Source"
+        }
+      },
+      "prereglage": {
+        "title": "Tarif de ta collectivité",
+        "description": "Tarifs tirés des délibérations officielles. Ta commune manque ? Voir le guide de contribution du dépôt.",
+        "data": {
+          "prereglage": "Collectivité",
+          "assainissement": "Raccordé au tout-à-l'égout (assainissement collectif)"
+        }
+      },
+      "prix_fixe": {
+        "title": "Prix fixe",
+        "description": "Prix moyen TTC au m³, abonnement compris (celui de ta dernière facture, par exemple).",
+        "data": {
+          "prix_fixe": "Prix TTC"
+        }
+      },
+      "releve": {
+        "title": "Dernière relève",
+        "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève.",
+        "data": {
+          "facturation": "Facturation",
+          "date_releve": "Date de la dernière relève",
+          "index_releve": "Index à la dernière relève"
+        }
+      },
+      "entite_prix": {
+        "title": "Entité de prix",
+        "description": "Choisis un capteur de prix au m³, par exemple « Prix total » de l'intégration HydroTarif (données SISPEA de ta commune).\n\nAttention : ce prix est un **prix moyen** calculé sur une facture de 120 m³ par an, abonnement compris. Le calcul n'a ni tranches ni abonnement séparé, et le « prix du prochain m³ » vaut ce prix moyen, pas le vrai prix marginal. Un préréglage de ta collectivité est plus juste s'il existe.",
+        "data": {
+          "entite_prix": "Capteur de prix (€/m³)"
+        }
+      },
+      "taux_facture": {
+        "title": "Taux de la dernière facture",
+        "description": "Reprends le montant TTC et le volume de ta dernière facture : le prix appliqué sera montant ÷ volume, abonnement compris. C'est un prix moyen, sans tranches. À chaque facture saisie avec l'action « Saisir une facture », ce taux est mis à jour.",
+        "data": {
+          "montant_facture": "Montant TTC",
+          "volume_facture": "Volume facturé"
+        }
+      }
+    },
+    "error": {
+      "capteur_absent": "Capteur introuvable.",
+      "unite": "L'index doit être en m³ ou en L.",
+      "state_class": "Le capteur doit être un index cumulé (state_class total_increasing ou total).",
+      "index_incoherent": "Cet index dépasse l'index actuel du compteur.",
+      "date_future": "La date est dans le futur.",
+      "unite_prix": "Le capteur doit être un prix au m³ (unité €/m³).",
+      "prix_indisponible": "Le prix de ce capteur est indisponible pour l'instant.",
+      "volume_nul": "Le volume doit être supérieur à zéro."
+    }
+  },
+  "selector": {
+    "source_tarif": {
+      "options": {
+        "prereglage": "Tarif d'une collectivité",
+        "prix_fixe": "Prix fixe au m³",
+        "entite_prix": "Entité de prix (HydroTarif…)",
+        "taux_facture": "Taux de la dernière facture"
+      }
+    },
+    "facturation": {
+      "options": {
+        "annuelle": "Annuelle",
+        "semestrielle": "Semestrielle"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "cout_releve": {
+        "name": "Coût depuis la dernière relève"
+      },
+      "estimation": {
+        "name": "Estimation de la prochaine facture"
+      },
+      "prix_marginal": {
+        "name": "Prix marginal"
+      },
+      "prix_moyen": {
+        "name": "Prix moyen"
+      },
+      "volume_releve": {
+        "name": "Volume depuis la dernière relève"
+      },
+      "tranche": {
+        "name": "Tranche actuelle"
+      },
+      "cout_jour": {
+        "name": "Coût aujourd'hui"
+      },
+      "cout_mois": {
+        "name": "Coût du mois"
+      },
+      "ecart_facture": {
+        "name": "Écart avec la dernière facture"
+      }
+    }
+  },
+  "services": {
+    "saisir_facture": {
+      "name": "Saisir une facture",
+      "description": "Compare une facture reçue au calcul, la garde dans l'historique et recale la relève (date et index) sur cette facture.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Facture",
+          "description": "Entrée tarifeau concernée."
+        },
+        "debut": {
+          "name": "Début de la période",
+          "description": "Date de la relève précédente, imprimée sur la facture."
+        },
+        "fin": {
+          "name": "Fin de la période",
+          "description": "Date de la relève de cette facture."
+        },
+        "volume": {
+          "name": "Volume facturé",
+          "description": "Consommation de la période, en m³."
+        },
+        "montant_ttc": {
+          "name": "Montant TTC",
+          "description": "Total de la facture, abonnement compris."
+        },
+        "index_releve": {
+          "name": "Index relevé",
+          "description": "Index du compteur à la fin de la période. Sans index, la relève avance du volume facturé si la facture part de la relève actuelle."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "entree_inconnue": {
+      "message": "Entrée tarifeau introuvable ou non chargée."
+    },
+    "periode_invalide": {
+      "message": "La fin de la période doit être après son début."
+    },
+    "date_future": {
+      "message": "La fin de la période est dans le futur."
+    },
+    "index_incoherent": {
+      "message": "L'index relevé dépasse l'index actuel du compteur ({actuel} m³)."
+    }
+  },
+  "issues": {
+    "ecart_facture": {
+      "title": "{nom} : écart de {ecart_pct} % avec la facture",
+      "description": "La facture du {debut} au {fin} s'élève à {montant} €, alors que le calcul donne {calcul} €, soit un écart de plus de {seuil} %.\n\nCauses possibles : le tarif a changé (choisis un préréglage à jour, ou signale-le dans le dépôt), une fuite, un compteur remplacé, ou une erreur de saisie. Cette alerte disparaît à la prochaine facture dont l'écart reste sous le seuil."
     }
   }
 }

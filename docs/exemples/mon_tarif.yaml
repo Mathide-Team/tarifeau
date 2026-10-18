@@ -1,0 +1,46 @@
+# Exemple de tarif personnel pour tarifeau (issue #17).
+# Copie ce fichier dans le dossier « tarifeau » de ta configuration Home Assistant
+# (à côté de configuration.yaml), par exemple /config/tarifeau/ma_commune.yaml, puis remplace
+# les valeurs par celles de ta facture ou de la délibération de ta collectivité.
+# Il apparaît dans la liste des tarifs sous « Mon tarif : … ».
+# Vérification : Paramètres → Appareils et services → tarifeau → Configurer
+# → Vérifier mes fichiers de tarif. Le format complet est décrit dans docs/tarif-personnel.md.
+id: ma_commune
+nom: Ma commune (exemple)
+facturation: semestrielle
+tranches: cumul_annuel  # ou « prorata » : voir docs/tarif-personnel.md
+periodes:
+  - debut: 2026-01-01
+    # fin: 2026-12-31     # seulement si une autre période suit
+    source: https://www.example.org/deliberation-tarifs-eau-2026.pdf
+    # Facture type, si la collectivité en publie une : le calcul doit la retrouver au centime près.
+    # factures_types:
+    #   - {volume_m3: 120, total_ttc: 480.00}
+    services:
+      eau_potable:
+        tva: 5.5
+        abonnements:
+          - nom: Abonnement eau potable
+            montant_ht_an: 30.00   # € HT par an (une part fixe semestrielle × 2)
+        composantes:
+          - nom: Consommation eau potable
+            tranches:                       # seuils annuels, en m³
+              - {jusqua: 30, prix_ht: 1.20}
+              - {prix_ht: 1.50}             # la dernière tranche n'a pas de seuil
+          - nom: Redevance consommation d'eau potable
+            prix_ht: 0.39
+            redevance: true
+          - nom: Redevance préservation des ressources en eau
+            prix_ht: 0.07
+            redevance: true
+      assainissement:   # supprime ce bloc si tu n'es pas raccordé au tout-à-l'égout
+        tva: 10
+        abonnements:
+          - nom: Abonnement assainissement
+            montant_ht_an: 20.00
+        composantes:
+          - nom: Consommation assainissement
+            prix_ht: 1.80
+          - nom: Redevance performance des systèmes d'assainissement collectif
+            prix_ht: 0.04
+            redevance: true

@@ -1,0 +1,114 @@
+# Tableau de bord Home Assistant « Facture d'eau » (tarifeau), cartes natives uniquement.
+#
+# Installation : Paramètres > Tableaux de bord > Ajouter un tableau de bord > Nouveau tableau de bord
+# à partir de zéro. Ouvre-le, puis crayon > ⋮ > Éditeur de configuration brute : colle ce fichier.
+# Pour l'ajouter à un tableau existant, colle seulement le contenu de « views: » comme nouvelle vue.
+#
+# Généré par scripts/generer_tableau_de_bord.py (« Facture d'eau »). Plusieurs compteurs :
+#   uv run --with pyyaml python scripts/generer_tableau_de_bord.py "Maison" "Dupont" -o mon_tableau.yaml
+title: Facture d'eau
+views:
+- title: Facture d'eau
+  path: facture-eau
+  icon: mdi:receipt-text
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Facture d'eau
+      icon: mdi:water-circle
+    - type: gauge
+      entity: sensor.facture_d_eau_cout_releve
+      name: Depuis la dernière relève
+      min: 0
+      max: 300
+      needle: true
+    - type: tile
+      entity: sensor.facture_d_eau_estimation
+      name: Prochaine facture
+      vertical: true
+    - type: tile
+      entity: sensor.facture_d_eau_cout_jour
+      name: Aujourd'hui
+      icon: mdi:calendar-today
+    - type: tile
+      entity: sensor.facture_d_eau_cout_mois
+      name: Ce mois-ci
+      icon: mdi:calendar-month
+    - type: tile
+      entity: sensor.facture_d_eau_ecart_facture
+      name: Écart facture
+      icon: mdi:receipt-text-check
+    - type: tile
+      entity: sensor.facture_d_eau_prix_marginal
+      name: Prix du prochain m³
+      icon: mdi:cash
+    - type: tile
+      entity: sensor.facture_d_eau_prix_moyen
+      name: Prix moyen
+      icon: mdi:scale-balance
+    - type: tile
+      entity: sensor.facture_d_eau_volume_releve
+      name: Volume
+      icon: mdi:water
+    - type: tile
+      entity: sensor.facture_d_eau_tranche
+      name: Tranche actuelle
+      icon: mdi:stairs
+  - type: grid
+    cards:
+    - type: heading
+      heading: 'Facture d''eau : coûts'
+      heading_style: subtitle
+      icon: mdi:chart-bar
+    - type: statistics-graph
+      title: Coût par jour
+      entities:
+      - sensor.facture_d_eau_cout_releve
+      stat_types:
+      - change
+      period: day
+      days_to_show: 30
+      chart_type: bar
+    - type: statistics-graph
+      title: Coût par mois
+      entities:
+      - sensor.facture_d_eau_cout_releve
+      stat_types:
+      - change
+      period: month
+      days_to_show: 365
+      chart_type: bar
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: 'Facture d''eau : détail de la facture en cours'
+      heading_style: subtitle
+      icon: mdi:receipt-text-outline
+    - type: markdown
+      content: |-
+        {%- set c = 'sensor.facture_d_eau_cout_releve' -%}
+        {%- set services = state_attr(c, 'services') or {} -%}
+        {%- set noms = {'eau_potable': 'Eau potable', 'assainissement': 'Assainissement', 'autre': 'Prix fixe'} -%}
+        {%- macro fr(x, f='%.2f') %}{{ (f % x) | replace('.', ',') }}{% endmacro -%}
+        | Ligne | Quantité | Prix HT | Montant HT |
+        |---|--:|--:|--:|
+        {%- for l in state_attr(c, 'lignes') or [] %}
+        {%- if loop.changed(l.service) %}
+        | **{{ noms.get(l.service, l.service) }}** | | | |
+        {%- endif %}
+        {%- if l.unite == 'an' %}
+        | {{ l.libelle }} | {{ l.jours ~ ' j' if l.jours is defined else fr(l.quantite, '%g') ~ ' an' }} | {{ fr(l.prix_unitaire_ht, '%g') }} €/an | {{ fr(l.montant_ht) }} € |
+        {%- else %}
+        | {{ l.libelle }} | {{ fr(l.quantite, '%g') }} m³ | {{ fr(l.prix_unitaire_ht, '%g') }} €/m³ | {{ fr(l.montant_ht) }} € |
+        {%- endif %}
+        {%- endfor %}
+        {%- for code, s in services.items() %}
+        | **Total {{ noms.get(code, code) | lower }}** | TVA {{ fr(s.taux_tva, '%g') }} % | {{ fr(s.ht) }} € HT | **{{ fr(s.ttc) }} € TTC** |
+        {%- endfor %}
+
+        Tarif : [{{ state_attr(c, 'tarif') }}]({{ state_attr(c, 'source') }})
+        {%- if state_attr(c, 'tarif_prolonge') %} — **tarif de l'année pas encore saisi, dernier tarif prolongé**{% endif %}

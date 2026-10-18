@@ -3,14 +3,273 @@
     "step": {
       "user": {
         "title": "Water bill",
-        "description": "Creates a water bill computed from your consumption. The meter index sensor and the tariff will be set in a next step (coming soon).",
+        "description": "Pick the index sensor of your meter, for instance « Compteur eau - Volume total » from the wM-Bus meter. One bill per meter.",
         "data": {
-          "name": "Name"
+          "name": "Name",
+          "index_entity": "Index sensor"
+        }
+      },
+      "tarif": {
+        "title": "Tariff source",
+        "description": "Where does the water price come from?",
+        "data": {
+          "source_tarif": "Source"
+        }
+      },
+      "prereglage": {
+        "title": "Your local authority's tariff",
+        "description": "Rates taken from official decisions. Your town is missing? See the repository's contribution guide, or write your own rate in a YAML file in the `{dossier}` folder: it shows up here under « Mon tarif ».",
+        "data": {
+          "prereglage": "Local authority",
+          "assainissement": "Connected to the public sewer (collective sanitation)"
+        }
+      },
+      "prix_fixe": {
+        "title": "Fixed price",
+        "description": "Average price per m³ including VAT and subscription (from your last bill, for instance).",
+        "data": {
+          "prix_fixe": "Price incl. VAT"
+        }
+      },
+      "releve": {
+        "title": "Last meter reading",
+        "description": "Copy the date and index of your last bill: the cost is computed from that reading.",
+        "data": {
+          "facturation": "Billing period length",
+          "date_releve": "Start of the billing period (last reading)",
+          "index_releve": "Index at the last reading"
+        },
+        "data_description": {
+          "facturation": "The period starts on the reading date: for example 3 months from April 1st for a quarterly bill.",
+          "date_releve": "Start date of the period, shown on your last bill (last meter reading)."
+        }
+      },
+      "entite_prix": {
+        "title": "Price entity",
+        "description": "Pick a price-per-m³ sensor, for example \"Total price\" from the HydroTarif integration (SISPEA data for your municipality).\n\nNote: this is an **average price** computed on a 120 m³/year bill, standing charges included. There are no tiers and no separate standing charge, and the \"next m³ price\" equals this average price, not the true marginal price. A preset for your water authority is more accurate when available.",
+        "data": {
+          "entite_prix": "Price sensor (€/m³)"
+        }
+      },
+      "taux_facture": {
+        "title": "Last bill rate",
+        "description": "Enter the total (incl. VAT) and volume of your last bill: the price used will be total ÷ volume, standing charges included. It is an average price without tiers. It is updated every time you enter a bill with the \"Enter a bill\" action.",
+        "data": {
+          "montant_facture": "Total incl. VAT",
+          "volume_facture": "Billed volume"
+        }
+      },
+      "diametre": {
+        "title": "Meter diameter",
+        "description": "This tariff's standing charge depends on the meter diameter (DN, in mm), printed on the bill or on the meter. DN 15 is the most common for a house.",
+        "data": {
+          "diametre": "Diameter"
         }
       }
     },
+    "error": {
+      "capteur_absent": "Sensor not found.",
+      "unite": "The index must be in m³ or L.",
+      "state_class": "The sensor must be a cumulative index (state_class total_increasing or total).",
+      "index_incoherent": "This index is above the current meter index.",
+      "date_future": "The date is in the future.",
+      "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
+      "prix_indisponible": "This sensor's price is currently unavailable.",
+      "volume_nul": "Volume must be greater than zero.",
+      "tarif_invalide": "Invalid rate: {erreur}"
+    },
     "abort": {
-      "already_configured": "A bill with this name already exists."
+      "already_configured": "This sensor already has a bill."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Water bill",
+        "menu_options": {
+          "tarif": "Change tariff",
+          "releve": "New meter reading (bill received)",
+          "verifier": "Check my rate files"
+        }
+      },
+      "tarif": {
+        "title": "Tariff source",
+        "description": "Where does the water price come from?",
+        "data": {
+          "source_tarif": "Source"
+        }
+      },
+      "prereglage": {
+        "title": "Your local authority's tariff",
+        "description": "Rates taken from official decisions. Your town is missing? See the repository's contribution guide, or write your own rate in a YAML file in the `{dossier}` folder: it shows up here under « Mon tarif ».",
+        "data": {
+          "prereglage": "Local authority",
+          "assainissement": "Connected to the public sewer (collective sanitation)"
+        }
+      },
+      "prix_fixe": {
+        "title": "Fixed price",
+        "description": "Average price per m³ including VAT and subscription (from your last bill, for instance).",
+        "data": {
+          "prix_fixe": "Price incl. VAT"
+        }
+      },
+      "releve": {
+        "title": "Last meter reading",
+        "description": "Copy the date and index of your last bill: the cost is computed from that reading.",
+        "data": {
+          "facturation": "Billing period length",
+          "date_releve": "Start of the billing period (last reading)",
+          "index_releve": "Index at the last reading"
+        },
+        "data_description": {
+          "facturation": "The period starts on the reading date: for example 3 months from April 1st for a quarterly bill.",
+          "date_releve": "Start date of the period, shown on your last bill (last meter reading)."
+        }
+      },
+      "entite_prix": {
+        "title": "Price entity",
+        "description": "Pick a price-per-m³ sensor, for example \"Total price\" from the HydroTarif integration (SISPEA data for your municipality).\n\nNote: this is an **average price** computed on a 120 m³/year bill, standing charges included. There are no tiers and no separate standing charge, and the \"next m³ price\" equals this average price, not the true marginal price. A preset for your water authority is more accurate when available.",
+        "data": {
+          "entite_prix": "Price sensor (€/m³)"
+        }
+      },
+      "taux_facture": {
+        "title": "Last bill rate",
+        "description": "Enter the total (incl. VAT) and volume of your last bill: the price used will be total ÷ volume, standing charges included. It is an average price without tiers. It is updated every time you enter a bill with the \"Enter a bill\" action.",
+        "data": {
+          "montant_facture": "Total incl. VAT",
+          "volume_facture": "Billed volume"
+        }
+      },
+      "diametre": {
+        "title": "Meter diameter",
+        "description": "This tariff's standing charge depends on the meter diameter (DN, in mm), printed on the bill or on the meter. DN 15 is the most common for a house.",
+        "data": {
+          "diametre": "Diameter"
+        }
+      },
+      "verifier": {
+        "title": "My rate files",
+        "description": "YAML files in the `{dossier}` folder (same format as the presets, see docs/tarif-personnel.md):\n\n{rapport}\n\nAfter changing a file that is already in use, reload the integration."
+      }
+    },
+    "error": {
+      "capteur_absent": "Sensor not found.",
+      "unite": "The index must be in m³ or L.",
+      "state_class": "The sensor must be a cumulative index (state_class total_increasing or total).",
+      "index_incoherent": "This index is above the current meter index.",
+      "date_future": "The date is in the future.",
+      "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
+      "prix_indisponible": "This sensor's price is currently unavailable.",
+      "volume_nul": "Volume must be greater than zero.",
+      "tarif_invalide": "Invalid rate: {erreur}"
+    }
+  },
+  "selector": {
+    "source_tarif": {
+      "options": {
+        "prereglage": "Local authority tariff",
+        "prix_fixe": "Fixed price per m³",
+        "entite_prix": "Price entity (HydroTarif…)",
+        "taux_facture": "Last bill rate"
+      }
+    },
+    "facturation": {
+      "options": {
+        "mensuelle": "Monthly (1 month)",
+        "bimestrielle": "Every 2 months",
+        "trimestrielle": "Quarterly (3 months)",
+        "quadrimestrielle": "Every 4 months",
+        "semestrielle": "Half-yearly (6 months)",
+        "annuelle": "Yearly (12 months)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "cout_releve": {
+        "name": "Cost since last reading"
+      },
+      "estimation": {
+        "name": "Next bill estimate"
+      },
+      "prix_marginal": {
+        "name": "Marginal price"
+      },
+      "prix_moyen": {
+        "name": "Average price"
+      },
+      "volume_releve": {
+        "name": "Volume since last reading"
+      },
+      "tranche": {
+        "name": "Current tier"
+      },
+      "cout_jour": {
+        "name": "Cost today"
+      },
+      "cout_mois": {
+        "name": "Cost this month"
+      },
+      "ecart_facture": {
+        "name": "Difference with last bill"
+      }
+    }
+  },
+  "services": {
+    "saisir_facture": {
+      "name": "Enter a bill",
+      "description": "Compares a received bill with the calculation, stores it in the history and resets the meter reading (date and index) to this bill.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Bill",
+          "description": "tarifeau entry."
+        },
+        "debut": {
+          "name": "Period start",
+          "description": "Previous meter reading date, printed on the bill."
+        },
+        "fin": {
+          "name": "Period end",
+          "description": "Meter reading date of this bill."
+        },
+        "volume": {
+          "name": "Billed volume",
+          "description": "Consumption for the period, in m³."
+        },
+        "montant_ttc": {
+          "name": "Total incl. VAT",
+          "description": "Bill total, standing charges included."
+        },
+        "index_releve": {
+          "name": "Meter index",
+          "description": "Meter index at the end of the period. Without it, the reading moves forward by the billed volume if the bill starts at the current reading."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "entree_inconnue": {
+      "message": "tarifeau entry not found or not loaded."
+    },
+    "periode_invalide": {
+      "message": "The period end must be after its start."
+    },
+    "date_future": {
+      "message": "The period end is in the future."
+    },
+    "index_incoherent": {
+      "message": "The meter index exceeds the current meter index ({actuel} m³)."
+    },
+    "tarif_invalide": {
+      "message": "Personal rate invalid or missing: {erreur}. Fix the file (Configure → Check my rate files), then reload the integration."
+    }
+  },
+  "issues": {
+    "ecart_facture": {
+      "title": "{nom}: {ecart_pct} % difference with the bill",
+      "description": "The bill from {debut} to {fin} is {montant} €, while the calculation gives {calcul} €: more than {seuil} % apart.\n\nPossible causes: the tariff changed (pick an up-to-date preset or report it in the repository), a leak, a replaced meter or a typo. This alert goes away with the next bill within the threshold."
     }
   }
 }

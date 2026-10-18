@@ -1,0 +1,23 @@
+# Recopie le « Prix marginal » de tarifeau dans le réglage « Prix de l'eau au m³ » de
+# l'ESP Esphome-Compteur-wmbus : ses capteurs « Coût jour » et « Coût mois », et son
+# écran, suivent alors la tranche réelle au lieu d'un prix saisi à la main.
+#
+# À coller dans automations.yaml (ou Paramètres > Automatisations > ⋮ > Modifier en YAML).
+# À adapter : les deux entity_id, si l'entrée tarifeau ou l'ESP portent d'autres noms.
+- alias: "tarifeau - prix de l'eau vers l'ESP"
+  id: tarifeau_prix_eau_vers_esp
+  mode: queued
+  triggers:
+    - trigger: state
+      entity_id: sensor.facture_d_eau_prix_marginal
+    - trigger: homeassistant
+      event: start
+  conditions:
+    - condition: template
+      value_template: "{{ states('sensor.facture_d_eau_prix_marginal') | is_number }}"
+  actions:
+    - action: number.set_value
+      target:
+        entity_id: number.compteur_eau_lora_prix_de_l_eau_au_m3
+      data:
+        value: "{{ states('sensor.facture_d_eau_prix_marginal') | float | round(2) }}"

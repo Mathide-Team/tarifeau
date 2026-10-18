@@ -1,0 +1,43 @@
+saisir_facture:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: tarifeau
+    debut:
+      required: true
+      example: "2026-01-02"
+      selector:
+        date:
+    fin:
+      required: true
+      example: "2026-07-01"
+      selector:
+        date:
+    volume:
+      required: true
+      example: 62
+      selector:
+        number:
+          min: 0
+          step: any
+          unit_of_measurement: m³
+          mode: box
+    montant_ttc:
+      required: true
+      example: 251.37
+      selector:
+        number:
+          min: 0
+          step: any
+          unit_of_measurement: €
+          mode: box
+    index_releve:
+      example: 1234.5
+      selector:
+        number:
+          min: 0
+          step: any
+          unit_of_measurement: m³
+          mode: box

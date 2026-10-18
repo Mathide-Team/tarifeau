@@ -1,0 +1,59 @@
+name: Ajouter ma commune
+description: Proposer le tarif d'eau de ta collectivité, pour en faire un préréglage
+title: "Tarif : <collectivité> <année>"
+labels: [enhancement, tarif]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci. Le guide [CONTRIBUER.md](https://github.com/Mathide-Team/tarifeau/blob/dev/custom_components/tarifeau/tarifs/CONTRIBUER.md) explique où trouver chaque valeur. Ne joins **aucune donnée personnelle** (nom, adresse, n° de contrat ou de compteur).
+  - type: input
+    id: collectivite
+    attributes:
+      label: Collectivité et service
+      description: Celle qui fixe le tarif (souvent l'intercommunalité), et le service (régie, délégataire…)
+      placeholder: Grand Besançon Métropole, régie
+    validations:
+      required: true
+  - type: input
+    id: communes
+    attributes:
+      label: Communes concernées
+      placeholder: Besançon, et la plupart des communes de GBM
+  - type: input
+    id: source
+    attributes:
+      label: Source officielle (URL)
+      description: Délibération, règlement de service, page « tarifs » ou RPQS
+    validations:
+      required: true
+  - type: input
+    id: date_effet
+    attributes:
+      label: Date d'effet
+      placeholder: 2026-01-01
+    validations:
+      required: true
+  - type: textarea
+    id: eau
+    attributes:
+      label: Eau potable
+      description: Abonnement (€ HT/an), prix au m³ (€ HT) et tranches, redevances de l'agence de l'eau, TVA
+    validations:
+      required: true
+  - type: textarea
+    id: assainissement
+    attributes:
+      label: Assainissement collectif
+      description: Abonnement, prix au m³, redevances, TVA (10 %, ou non assujetti)
+  - type: input
+    id: facture_type
+    attributes:
+      label: Facture type publiée (facultatif)
+      description: Le montant TTC pour 120 m³ s'il est publié, pour vérifier le calcul
+      placeholder: 484,23 € TTC pour 120 m³
+  - type: textarea
+    id: facture
+    attributes:
+      label: Vérification sur ta facture (facultatif)
+      description: Quantités par tranche et montants de ta dernière facture, sans données personnelles

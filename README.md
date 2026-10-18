@@ -70,6 +70,16 @@ data:
 - La **relève est recalée** : la date et l'index deviennent ceux de la facture. Sans index, la relève avance du volume facturé, à condition que la facture parte de la relève actuelle. Une facture plus ancienne que la relève est seulement gardée dans l'historique.
 - Si l'écart dépasse **10 %**, une alerte apparaît dans Paramètres → Réparations : tarif changé, fuite, compteur remplacé ou faute de frappe. Elle disparaît avec la prochaine facture qui reste sous le seuil.
 - Avec la source « Taux de la dernière facture », chaque saisie met aussi le taux à jour.
+
+### Notification ntfy
+
+Au-delà du seuil, tarifeau émet aussi l'événement **`tarifeau_ecart_facture`**, avec ces données : `config_entry_id`, `nom`, `debut`, `fin`, `volume`, `montant_ttc`, `calcul_ttc`, `ecart`, `ecart_pct`, `seuil_pct`.
+
+Le blueprint [`blueprints/automation/tarifeau/ecart_facture_ntfy.yaml`](blueprints/automation/tarifeau/ecart_facture_ntfy.yaml) en fait une notification ntfy, avec l'action `ntfy.publish` de l'intégration ntfy de Home Assistant (déjà utilisée par Esphome-Compteur-wmbus-ntfy). Il se règle en trois champs : le sujet ntfy, la facture (vide = toutes) et la priorité.
+
+[![Importer le blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMathide-Team%2Ftarifeau%2Fblob%2Fdev%2Fblueprints%2Fautomation%2Ftarifeau%2Fecart_facture_ntfy.yaml)
+
+Pour un autre canal (application mobile, e-mail…), il suffit d'une automatisation déclenchée par cet événement.
 - L'historique (60 factures au plus) est gardé dans le stockage de Home Assistant, et supprimé avec l'entrée.
 
 ## Tableau de bord

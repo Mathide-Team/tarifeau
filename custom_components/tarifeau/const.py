@@ -30,6 +30,7 @@ CHAMPS_SOURCE = {
 }
 
 SERVICE_SAISIR_FACTURE = "saisir_facture"
+EVENEMENT_ECART = "tarifeau_ecart_facture"  # écart au-delà du seuil (automatisations, ntfy)
 SEUIL_ECART = 10  # % : au-delà, alerte dans Paramètres > Réparations
 HISTORIQUE_MAX = 60  # factures gardées par entrée (30 ans en semestriel)
 

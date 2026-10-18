@@ -1,0 +1,68 @@
+blueprint:
+  name: "tarifeau : notification ntfy si une facture s'écarte du calcul"
+  description: >-
+    Envoie une notification ntfy quand une facture saisie avec l'action
+    « Saisir une facture » (tarifeau.saisir_facture) s'écarte du calcul de plus
+    du seuil (10 %). Causes possibles : tarif changé, fuite, compteur remplacé,
+    faute de frappe.
+
+    Prérequis : l'intégration ntfy de Home Assistant, avec un sujet (entité notify).
+  domain: automation
+  source_url: https://github.com/Mathide-Team/tarifeau/blob/dev/blueprints/automation/tarifeau/ecart_facture_ntfy.yaml
+  input:
+    sujet_ntfy:
+      name: Sujet ntfy
+      description: Entité notify du sujet ntfy qui reçoit l'alerte.
+      selector:
+        entity:
+          filter:
+            - domain: notify
+              integration: ntfy
+    facture:
+      name: Facture (facultatif)
+      description: Une seule entrée tarifeau. Vide = toutes les factures.
+      default: ""
+      selector:
+        config_entry:
+          integration: tarifeau
+    priorite:
+      name: Priorité ntfy
+      default: "4"
+      selector:
+        select:
+          options:
+            - label: max
+              value: "5"
+            - label: haute
+              value: "4"
+            - label: normale
+              value: "3"
+
+mode: queued
+
+variables:
+  facture: !input facture
+
+triggers:
+  - trigger: event
+    event_type: tarifeau_ecart_facture
+
+conditions:
+  - condition: template
+    value_template: "{{ facture in ('', none) or trigger.event.data.config_entry_id == facture }}"
+
+actions:
+  - action: ntfy.publish
+    target:
+      entity_id: !input sujet_ntfy
+    data:
+      title: "{{ trigger.event.data.nom }} : écart de {{ '%+.1f' % trigger.event.data.ecart_pct }} % avec la facture"
+      message: >-
+        Facture du {{ trigger.event.data.debut }} au {{ trigger.event.data.fin }}
+        ({{ trigger.event.data.volume }} m³) : {{ '%.2f' % trigger.event.data.montant_ttc }} €,
+        calcul : {{ '%.2f' % trigger.event.data.calcul_ttc }} €.
+        Tarif à jour ? Fuite ? Compteur remplacé ?
+      priority: !input priorite
+      tags:
+        - warning
+        - droplet

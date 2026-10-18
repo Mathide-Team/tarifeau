@@ -42,8 +42,16 @@ from .const import (
     STATE_CLASSES_INDEX,
     UNITES_INDEX,
 )
-from .modele import charger_tarif, diametres, prereglages
-from .suivi import prix_entite, unite_prix_valide
+from .modele import (
+    PREFIXE_PERSO,
+    Tarif,
+    TarifInvalide,
+    charger_tarif,
+    diametres,
+    prereglages,
+    verifier_tarifs_perso,
+)
+from .suivi import dossier_perso, prix_entite, unite_prix_valide
 
 
 def index_actuel_m3(hass: HomeAssistant, entity_id: str) -> float | None:
@@ -71,10 +79,37 @@ def _verifier_capteur(hass: HomeAssistant, entity_id: str) -> str | None:
 
 
 async def _noms_prereglages(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
+    """Préréglages fournis, puis tarifs personnels de ``<config>/tarifeau/`` (même invalides, signalés)."""
+
     def lire() -> list[selector.SelectOptionDict]:
-        return [selector.SelectOptionDict(value=i, label=charger_tarif(i).nom) for i in prereglages()]
+        options = [selector.SelectOptionDict(value=i, label=charger_tarif(i).nom) for i in prereglages()]
+        for ident, tarif, _erreur in verifier_tarifs_perso(dossier_perso(hass)):
+            fichier = ident.removeprefix(PREFIXE_PERSO)
+            libelle = f"Mon tarif : {tarif.nom} ({fichier})" if tarif else f"Mon tarif : {fichier} (invalide)"
+            options.append(selector.SelectOptionDict(value=ident, label=libelle))
+        return options
 
     return await hass.async_add_executor_job(lire)
+
+
+def _rapport_tarifs_perso(hass: HomeAssistant) -> str:
+    """Texte Markdown : état de chaque fichier de ``<config>/tarifeau/`` (hors boucle d'événements)."""
+    dossier = dossier_perso(hass)
+    resultats = verifier_tarifs_perso(dossier)
+    if not resultats:
+        return f"Aucun fichier `.yaml` dans `{dossier}`."
+    lignes = []
+    for ident, tarif, erreur in resultats:
+        fichier = ident.removeprefix(PREFIXE_PERSO)
+        if tarif:
+            debut = tarif.periodes[0].debut.strftime("%d/%m/%Y")
+            lignes.append(
+                f"- **{fichier}** : valide, « {tarif.nom} », "
+                f"{len(tarif.periodes)} période(s) depuis le {debut}"
+            )
+        else:
+            lignes.append(f"- **{fichier}** : invalide. {erreur}")
+    return "\n".join(lignes)
 
 
 def _schema_source(defaut: str = SOURCE_PREREGLAGE) -> vol.Schema:
@@ -217,18 +252,33 @@ class _EtapesTarif:
 
     async def async_step_prereglage(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Choix d'un tarif de collectivité."""
+        erreurs: dict[str, str] = {}
+        details = {"erreur": ""}
         if user_input is not None:
-            tarif = await self.hass.async_add_executor_job(charger_tarif, user_input[CONF_PREREGLAGE])
-            self._diametres = diametres(tarif)
-            if self._diametres:
-                self._prereglage = user_input
-                return await self.async_step_diametre()
-            self._donnees.pop(CONF_DIAMETRE, None)  # préréglage précédent avec diamètre
-            return await self._garder(SOURCE_PREREGLAGE, user_input)
+            try:
+                tarif = await self.hass.async_add_executor_job(
+                    charger_tarif, user_input[CONF_PREREGLAGE], dossier_perso(self.hass)
+                )
+            except TarifInvalide as err:
+                erreurs["base"], details["erreur"] = "tarif_invalide", str(err)
+            else:
+                return await self._apres_prereglage(user_input, tarif)
         options = await _noms_prereglages(self.hass)
         return self.async_show_form(
-            step_id="prereglage", data_schema=_schema_prereglage(options, self._actuel())
+            step_id="prereglage",
+            data_schema=_schema_prereglage(options, user_input or self._actuel()),
+            errors=erreurs,
+            description_placeholders={**details, "dossier": str(dossier_perso(self.hass))},
         )
+
+    async def _apres_prereglage(self, user_input: dict[str, Any], tarif: Tarif) -> ConfigFlowResult:
+        """Diamètre si l'abonnement en dépend, sinon le tarif est gardé."""
+        self._diametres = diametres(tarif)
+        if self._diametres:
+            self._prereglage = user_input
+            return await self.async_step_diametre()
+        self._donnees.pop(CONF_DIAMETRE, None)  # préréglage précédent avec diamètre
+        return await self._garder(SOURCE_PREREGLAGE, user_input)
 
     async def async_step_diametre(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Diamètre du compteur, quand l'abonnement du préréglage en dépend."""
@@ -365,7 +415,18 @@ class TarifeauOptionsFlow(_EtapesTarif, OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Menu : changer de tarif, ou saisir une nouvelle relève."""
         self._donnees = {**self.config_entry.data, **self.config_entry.options}
-        return self.async_show_menu(step_id="init", menu_options=["tarif", "releve"])
+        return self.async_show_menu(step_id="init", menu_options=["tarif", "releve", "verifier"])
+
+    async def async_step_verifier(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Vérifie les fichiers de tarif personnels, sans rien modifier (issue #17)."""
+        if user_input is not None:
+            return await self.async_step_init()
+        rapport = await self.hass.async_add_executor_job(_rapport_tarifs_perso, self.hass)
+        return self.async_show_form(
+            step_id="verifier",
+            data_schema=vol.Schema({}),
+            description_placeholders={"dossier": str(dossier_perso(self.hass)), "rapport": rapport},
+        )
 
     def _terminer(self) -> ConfigFlowResult:
         options = {k: v for k, v in self._donnees.items() if k not in (CONF_NOM, CONF_INDEX)}

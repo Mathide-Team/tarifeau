@@ -18,7 +18,7 @@
       },
       "prereglage": {
         "title": "Your local authority's tariff",
-        "description": "Tariffs taken from official decisions. Your town is missing? See the contribution guide in the repository.",
+        "description": "Rates taken from official decisions. Your town is missing? See the repository's contribution guide, or write your own rate in a YAML file in the `{dossier}` folder: it shows up here under « Mon tarif ».",
         "data": {
           "prereglage": "Local authority",
           "assainissement": "Connected to the public sewer (collective sanitation)"
@@ -75,7 +75,8 @@
       "date_future": "The date is in the future.",
       "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
       "prix_indisponible": "This sensor's price is currently unavailable.",
-      "volume_nul": "Volume must be greater than zero."
+      "volume_nul": "Volume must be greater than zero.",
+      "tarif_invalide": "Invalid rate: {erreur}"
     },
     "abort": {
       "already_configured": "This sensor already has a bill."
@@ -87,7 +88,8 @@
         "title": "Water bill",
         "menu_options": {
           "tarif": "Change tariff",
-          "releve": "New meter reading (bill received)"
+          "releve": "New meter reading (bill received)",
+          "verifier": "Check my rate files"
         }
       },
       "tarif": {
@@ -99,7 +101,7 @@
       },
       "prereglage": {
         "title": "Your local authority's tariff",
-        "description": "Tariffs taken from official decisions. Your town is missing? See the contribution guide in the repository.",
+        "description": "Rates taken from official decisions. Your town is missing? See the repository's contribution guide, or write your own rate in a YAML file in the `{dossier}` folder: it shows up here under « Mon tarif ».",
         "data": {
           "prereglage": "Local authority",
           "assainissement": "Connected to the public sewer (collective sanitation)"
@@ -146,6 +148,10 @@
         "data": {
           "diametre": "Diameter"
         }
+      },
+      "verifier": {
+        "title": "My rate files",
+        "description": "YAML files in the `{dossier}` folder (same format as the presets, see docs/tarif-personnel.md):\n\n{rapport}\n\nAfter changing a file that is already in use, reload the integration."
       }
     },
     "error": {
@@ -156,7 +162,8 @@
       "date_future": "The date is in the future.",
       "unite_prix": "The sensor must be a price per m³ (unit €/m³).",
       "prix_indisponible": "This sensor's price is currently unavailable.",
-      "volume_nul": "Volume must be greater than zero."
+      "volume_nul": "Volume must be greater than zero.",
+      "tarif_invalide": "Invalid rate: {erreur}"
     }
   },
   "selector": {
@@ -254,6 +261,9 @@
     },
     "index_incoherent": {
       "message": "The meter index exceeds the current meter index ({actuel} m³)."
+    },
+    "tarif_invalide": {
+      "message": "Personal rate invalid or missing: {erreur}. Fix the file (Configure → Check my rate files), then reload the integration."
     }
   },
   "issues": {

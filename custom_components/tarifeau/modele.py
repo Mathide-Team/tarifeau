@@ -48,6 +48,10 @@ SERVICES = ("eau_potable", "assainissement", "autre")
 FACTURATIONS = ("mensuelle", "bimestrielle", "trimestrielle", "quadrimestrielle", "semestrielle", "annuelle")
 REGLES_TRANCHES = ("cumul_annuel", "prorata")
 DOSSIER_TARIFS = Path(__file__).parent / "tarifs"
+# Tarifs personnels (issue #17) : fichiers YAML au même format, dans <config>/tarifeau/.
+NOM_DOSSIER_PERSO = "tarifeau"
+PREFIXE_PERSO = "perso:"
+EXTENSIONS_PERSO = (".yaml", ".yml")
 
 
 class TarifInvalide(ValueError):
@@ -342,16 +346,52 @@ def tarif_depuis_dict(donnees: Any) -> Tarif:
     )
 
 
-def charger_tarif(source: str | Path) -> Tarif:
-    """Lit un tarif YAML : chemin d'un fichier, ou identifiant d'un préréglage de ``tarifs/``."""
+def chemin_tarif(source: str | Path, dossier_perso: Path | None = None) -> Path:
+    """Fichier d'un tarif : chemin, identifiant de préréglage, ou ``perso:<nom>`` (dossier personnel)."""
+    if isinstance(source, str) and source.startswith(PREFIXE_PERSO):
+        nom = source.removeprefix(PREFIXE_PERSO)
+        if dossier_perso is None:
+            raise TarifInvalide(f"{nom} : dossier des tarifs personnels inconnu")
+        for extension in EXTENSIONS_PERSO:
+            if (chemin := dossier_perso / f"{nom}{extension}").is_file():
+                return chemin
+        raise TarifInvalide(f"{nom}.yaml : fichier absent du dossier {dossier_perso}")
     chemin = Path(source)
-    if not chemin.suffix:
-        chemin = DOSSIER_TARIFS / f"{source}.yaml"
+    return chemin if chemin.suffix else DOSSIER_TARIFS / f"{source}.yaml"
+
+
+def charger_tarif(source: str | Path, dossier_perso: Path | None = None) -> Tarif:
+    """Lit un tarif YAML : chemin, identifiant d'un préréglage de ``tarifs/`` ou ``perso:<nom>``."""
+    chemin = chemin_tarif(source, dossier_perso)
     try:
         donnees = yaml.safe_load(chemin.read_text(encoding="utf-8"))
     except yaml.YAMLError as err:
         raise TarifInvalide(f"{chemin.name} : YAML invalide ({err})") from None
-    return tarif_depuis_dict(donnees)
+    except (OSError, UnicodeDecodeError) as err:
+        raise TarifInvalide(f"{chemin.name} : fichier illisible ({err})") from None
+    try:
+        return tarif_depuis_dict(donnees)
+    except TarifInvalide as err:
+        raise TarifInvalide(f"{chemin.name} : {err}") from None
+
+
+def tarifs_perso(dossier: Path | None) -> list[str]:
+    """Identifiants ``perso:<nom>`` des fichiers YAML du dossier personnel, valides ou non."""
+    if dossier is None or not dossier.is_dir():
+        return []
+    noms = {p.stem for p in dossier.iterdir() if p.suffix in EXTENSIONS_PERSO and p.is_file()}
+    return [f"{PREFIXE_PERSO}{nom}" for nom in sorted(noms)]
+
+
+def verifier_tarifs_perso(dossier: Path | None) -> list[tuple[str, Tarif | None, str | None]]:
+    """Pour chaque fichier personnel : (identifiant, tarif, ``None``) ou (identifiant, ``None``, erreur)."""
+    resultats: list[tuple[str, Tarif | None, str | None]] = []
+    for ident in tarifs_perso(dossier):
+        try:
+            resultats.append((ident, charger_tarif(ident, dossier), None))
+        except TarifInvalide as err:
+            resultats.append((ident, None, str(err)))
+    return resultats
 
 
 def prereglages() -> list[str]:

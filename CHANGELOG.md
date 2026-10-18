@@ -2,7 +2,7 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les numéros suivent [SemVer](https://semver.org/lang/fr/), et la version de `manifest.json` est égale au tag.
 
-## [0.1.0] : non publiée
+## [0.1.0] - 2026-10-18
 
 Première version.
 

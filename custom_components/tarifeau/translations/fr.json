@@ -35,9 +35,13 @@
         "title": "Dernière relève",
         "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève.",
         "data": {
-          "facturation": "Facturation",
-          "date_releve": "Date de la dernière relève",
+          "facturation": "Durée de la période facturée",
+          "date_releve": "Début de la période (dernière relève)",
           "index_releve": "Index à la dernière relève"
+        },
+        "data_description": {
+          "facturation": "La période commence à la date de relève : par exemple 3 mois à partir du 1er avril pour une facture trimestrielle.",
+          "date_releve": "Date de début de la période, indiquée sur ta dernière facture (dernière relève de l'index)."
         }
       },
       "entite_prix": {
@@ -112,9 +116,13 @@
         "title": "Dernière relève",
         "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève.",
         "data": {
-          "facturation": "Facturation",
-          "date_releve": "Date de la dernière relève",
+          "facturation": "Durée de la période facturée",
+          "date_releve": "Début de la période (dernière relève)",
           "index_releve": "Index à la dernière relève"
+        },
+        "data_description": {
+          "facturation": "La période commence à la date de relève : par exemple 3 mois à partir du 1er avril pour une facture trimestrielle.",
+          "date_releve": "Date de début de la période, indiquée sur ta dernière facture (dernière relève de l'index)."
         }
       },
       "entite_prix": {
@@ -162,8 +170,12 @@
     },
     "facturation": {
       "options": {
-        "annuelle": "Annuelle",
-        "semestrielle": "Semestrielle"
+        "mensuelle": "Mensuelle (1 mois)",
+        "bimestrielle": "Bimestrielle (2 mois)",
+        "trimestrielle": "Trimestrielle (3 mois)",
+        "quadrimestrielle": "Quadrimestrielle (4 mois)",
+        "semestrielle": "Semestrielle (6 mois)",
+        "annuelle": "Annuelle (12 mois)"
       }
     }
   },

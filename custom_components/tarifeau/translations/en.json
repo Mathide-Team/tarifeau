@@ -35,9 +35,13 @@
         "title": "Last meter reading",
         "description": "Copy the date and index of your last bill: the cost is computed from that reading.",
         "data": {
-          "facturation": "Billing",
-          "date_releve": "Date of the last reading",
+          "facturation": "Billing period length",
+          "date_releve": "Start of the billing period (last reading)",
           "index_releve": "Index at the last reading"
+        },
+        "data_description": {
+          "facturation": "The period starts on the reading date: for example 3 months from April 1st for a quarterly bill.",
+          "date_releve": "Start date of the period, shown on your last bill (last meter reading)."
         }
       },
       "entite_prix": {
@@ -112,9 +116,13 @@
         "title": "Last meter reading",
         "description": "Copy the date and index of your last bill: the cost is computed from that reading.",
         "data": {
-          "facturation": "Billing",
-          "date_releve": "Date of the last reading",
+          "facturation": "Billing period length",
+          "date_releve": "Start of the billing period (last reading)",
           "index_releve": "Index at the last reading"
+        },
+        "data_description": {
+          "facturation": "The period starts on the reading date: for example 3 months from April 1st for a quarterly bill.",
+          "date_releve": "Start date of the period, shown on your last bill (last meter reading)."
         }
       },
       "entite_prix": {
@@ -162,8 +170,12 @@
     },
     "facturation": {
       "options": {
-        "annuelle": "Yearly",
-        "semestrielle": "Half-yearly"
+        "mensuelle": "Monthly (1 month)",
+        "bimestrielle": "Every 2 months",
+        "trimestrielle": "Quarterly (3 months)",
+        "quadrimestrielle": "Every 4 months",
+        "semestrielle": "Half-yearly (6 months)",
+        "annuelle": "Yearly (12 months)"
       }
     }
   },

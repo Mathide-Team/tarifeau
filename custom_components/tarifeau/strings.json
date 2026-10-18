@@ -215,8 +215,20 @@
       "cout_jour": {
         "name": "Coût aujourd'hui"
       },
+      "cout_hier": {
+        "name": "Coût hier"
+      },
+      "cout_semaine": {
+        "name": "Coût cette semaine"
+      },
+      "cout_semaine_derniere": {
+        "name": "Coût semaine dernière"
+      },
       "cout_mois": {
         "name": "Coût du mois"
+      },
+      "cout_mois_dernier": {
+        "name": "Coût mois dernier"
       },
       "ecart_facture": {
         "name": "Écart avec la dernière facture"

@@ -15,6 +15,7 @@ CONF_FACTURATION = "facturation"
 CONF_DATE_RELEVE = "date_releve"  # AAAA-MM-JJ
 CONF_INDEX_RELEVE = "index_releve"  # m³, repris de la facture
 CONF_ASSAINISSEMENT = "assainissement"
+CONF_DIAMETRE = "diametre"  # DN du compteur en mm, si l'abonnement en dépend
 
 SOURCE_PREREGLAGE = "prereglage"
 SOURCE_PRIX_FIXE = "prix_fixe"
@@ -23,7 +24,7 @@ SOURCE_TAUX_FACTURE = "taux_facture"
 SOURCES = (SOURCE_PREREGLAGE, SOURCE_PRIX_FIXE, SOURCE_ENTITE_PRIX, SOURCE_TAUX_FACTURE)
 # Champs propres à chaque source : effacés quand on change de source.
 CHAMPS_SOURCE = {
-    SOURCE_PREREGLAGE: ("prereglage", "assainissement"),
+    SOURCE_PREREGLAGE: ("prereglage", "assainissement", "diametre"),
     SOURCE_PRIX_FIXE: ("prix_fixe",),
     SOURCE_ENTITE_PRIX: ("entite_prix",),
     SOURCE_TAUX_FACTURE: ("montant_facture", "volume_facture"),

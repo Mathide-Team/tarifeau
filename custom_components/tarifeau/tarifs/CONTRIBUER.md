@@ -22,6 +22,7 @@ Copie `grand_besancon_regie.yaml` sous le nom `<id>.yaml`. L'`id` (minuscules, `
 | Sur la délibération | Dans le fichier |
 |---|---|
 | Abonnement, part fixe, prime fixe (€ HT **par an**) | `abonnements: - {nom, montant_ht_an}`. Une part fixe semestrielle se multiplie par 2 |
+| Abonnement selon le diamètre du compteur (DN 15, DN 20…) | `montant_ht_an` = montant du compteur le plus courant (DN 15 en général), plus `par_diametre: {15: 40.00, 20: 64.00}` (DN en mm → € HT par an). Le formulaire demande alors le diamètre |
 | Part variable, prix au m³, consommation (€ HT/m³) | `composantes: - {nom, prix_ht}` |
 | Tranches (0 à 30 m³, 30 à 100 m³…) | `tranches:` avec des seuils `jusqua` **annuels** croissants ; la dernière n'a pas de seuil |
 | m³ gratuits | première tranche à `prix_ht: 0` |

@@ -20,6 +20,7 @@ from .const import (
     CHAMPS_SOURCE,
     CONF_ASSAINISSEMENT,
     CONF_DATE_RELEVE,
+    CONF_DIAMETRE,
     CONF_ENTITE_PRIX,
     CONF_FACTURATION,
     CONF_INDEX,
@@ -41,7 +42,7 @@ from .const import (
     STATE_CLASSES_INDEX,
     UNITES_INDEX,
 )
-from .modele import charger_tarif, prereglages
+from .modele import charger_tarif, diametres, prereglages
 from .suivi import prix_entite, unite_prix_valide
 
 
@@ -190,6 +191,8 @@ class _EtapesTarif:
 
     hass: HomeAssistant
     _donnees: dict[str, Any]
+    _diametres: list[int]
+    _prereglage: dict[str, Any]
 
     def _actuel(self) -> dict[str, Any]:
         return self._donnees
@@ -215,11 +218,39 @@ class _EtapesTarif:
     async def async_step_prereglage(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Choix d'un tarif de collectivité."""
         if user_input is not None:
+            tarif = await self.hass.async_add_executor_job(charger_tarif, user_input[CONF_PREREGLAGE])
+            self._diametres = diametres(tarif)
+            if self._diametres:
+                self._prereglage = user_input
+                return await self.async_step_diametre()
+            self._donnees.pop(CONF_DIAMETRE, None)  # préréglage précédent avec diamètre
             return await self._garder(SOURCE_PREREGLAGE, user_input)
         options = await _noms_prereglages(self.hass)
         return self.async_show_form(
             step_id="prereglage", data_schema=_schema_prereglage(options, self._actuel())
         )
+
+    async def async_step_diametre(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Diamètre du compteur, quand l'abonnement du préréglage en dépend."""
+        if user_input is not None:
+            return await self._garder(
+                SOURCE_PREREGLAGE, {**self._prereglage, CONF_DIAMETRE: int(user_input[CONF_DIAMETRE])}
+            )
+        actuel = self._actuel().get(CONF_DIAMETRE)
+        defaut = actuel if actuel in self._diametres else self._diametres[0]
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_DIAMETRE, default=str(defaut)): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value=str(dn), label=f"DN {dn}")
+                            for dn in self._diametres
+                        ]
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="diametre", data_schema=schema)
 
     async def async_step_prix_fixe(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Prix TTC au m³, abonnement compris."""

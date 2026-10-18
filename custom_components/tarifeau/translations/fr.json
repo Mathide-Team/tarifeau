@@ -54,6 +54,13 @@
           "montant_facture": "Montant TTC",
           "volume_facture": "Volume facturé"
         }
+      },
+      "diametre": {
+        "title": "Diamètre du compteur",
+        "description": "L'abonnement de ce tarif dépend du diamètre du compteur (DN, en mm). Il est indiqué sur la facture ou sur le compteur. Le plus courant en maison individuelle est DN 15.",
+        "data": {
+          "diametre": "Diamètre"
+        }
       }
     },
     "error": {
@@ -123,6 +130,13 @@
         "data": {
           "montant_facture": "Montant TTC",
           "volume_facture": "Volume facturé"
+        }
+      },
+      "diametre": {
+        "title": "Diamètre du compteur",
+        "description": "L'abonnement de ce tarif dépend du diamètre du compteur (DN, en mm). Il est indiqué sur la facture ou sur le compteur. Le plus courant en maison individuelle est DN 15.",
+        "data": {
+          "diametre": "Diamètre"
         }
       }
     },

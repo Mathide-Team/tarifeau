@@ -14,7 +14,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 
 ## Installation (HACS)
 
-> En cours : configuration, capteurs et tableau de bord disponibles ; la première version est suivie dans l'issue #10.
+> Première version `v0.1.0` en préparation (issue #10) : voir le [journal des versions](CHANGELOG.md). Home Assistant 2026.3 ou plus récent.
 
 1. HACS → menu ⋮ → **Dépôts personnalisés** → `https://github.com/Mathide-Team/tarifeau`, catégorie **Intégration**.
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
@@ -24,6 +24,14 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
    3. la **dernière relève** : facturation annuelle ou semestrielle, date et index, repris de ta dernière facture.
 
    Ensuite, **Configurer** permet de changer de tarif ou de saisir une nouvelle relève à chaque facture.
+
+### Installation à la main
+
+Copie le dossier `custom_components/tarifeau/` de la [dernière version](https://github.com/Mathide-Team/tarifeau/releases) dans le dossier `custom_components/` de ta configuration Home Assistant (à côté de `configuration.yaml`), redémarre, puis reprends à l'étape 3. Les mises à jour se font de la même façon : remplacer le dossier, puis redémarrer.
+
+### Exemple complet avec Esphome-Compteur-wmbus
+
+Le guide [docs/esphome-compteur-wmbus.md](docs/esphome-compteur-wmbus.md) couvre une facture par voisin, le tableau de bord Énergie, et le prix du prochain m³ recopié dans l'ESP, pour que son écran et ses coûts suivent la vraie tranche.
 
 ## Capteurs
 
@@ -110,6 +118,15 @@ Préréglages fournis :
 | Grand Belfort (régie) | 01/05/2026 | 624,32 € TTC (assainissement non assujetti à la TVA) | [page Abonnements et tarifs](https://www.grandbelfort.fr/eau/abonnements-et-tarifs.html) |
 
 Ta commune manque ? Ouvre une issue **« Ajouter ma commune »**, ou suis le guide [`tarifs/CONTRIBUER.md`](custom_components/tarifeau/tarifs/CONTRIBUER.md).
+
+## Limites
+
+- **Le montant reste indicatif** : seule la facture de ton service fait foi. Saisis tes factures (action « Saisir une facture ») pour vérifier l'écart.
+- **Zones et services** : un préréglage décrit **un service** (une régie, un contrat de délégation), pas une adresse. Une même agglomération peut avoir plusieurs services ou plusieurs zones tarifaires, avec des tarifs différents. Vérifie que la délibération du préréglage est bien celle qui figure sur ta facture.
+- **Assainissement non collectif** (fosse septique) : décoche « Raccordé au tout-à-l'égout ». La redevance du SPANC (contrôles, vidanges) n'est pas calculée, car elle ne dépend pas du volume.
+- **Tarifs annuels** : beaucoup changent au 1er janvier. Tant que le nouveau tarif n'est pas dans le préréglage, le dernier connu est prolongé (attribut `tarif_prolonge`).
+- **Prix moyen** (sources « prix fixe », « entité de prix », « taux de la dernière facture ») : pas de tranches, et l'abonnement est réparti dans le prix au m³.
+- **Hors France** : le modèle de facture (TVA par service, redevances des agences de l'eau) est propre à la France.
 
 ## Comment la facture est calculée
 

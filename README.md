@@ -21,7 +21,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 3. **Paramètres → Appareils et services → Ajouter une intégration → tarifeau**, puis :
    1. le **capteur d'index** du compteur (m³ ou L, `state_class` `total_increasing` ou `total`), par exemple « Compteur eau - Volume total » d'[Esphome-Compteur-wmbus](https://github.com/Mathide-Team/Esphome-Compteur-wmbus). Une facture par compteur : une par voisin, par exemple ;
    2. la **source du tarif** : le tarif d'une collectivité (avec ou sans assainissement collectif), un prix fixe TTC au m³, le **taux de ta dernière facture** (montant TTC ÷ volume), ou une **entité de prix** (voir plus bas) ;
-   3. la **dernière relève**, qui marque le début de la période : date et index repris de ta dernière facture, et durée de la période facturée (1, 2, 3, 4, 6 ou 12 mois, par exemple 3 mois à partir du 1er avril pour une facture trimestrielle).
+   3. la **dernière relève**, qui marque le début de la période : date et index repris de ta dernière facture, et durée de la période facturée (1, 2, 3, 4, 6 ou 12 mois, par exemple 3 mois à partir du 1er avril pour une facture trimestrielle). Si ta facture ne suit pas un rythme régulier, indique aussi la **fin de la période** (par exemple du 05/09/2025 au 18/08/2026) : elle remplace la durée.
 
    Ensuite, **Configurer** permet de changer de tarif ou de saisir une nouvelle relève à chaque facture.
 

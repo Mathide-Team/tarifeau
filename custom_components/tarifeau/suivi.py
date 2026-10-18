@@ -28,6 +28,7 @@ from .const import (
     CONF_DIAMETRE,
     CONF_ENTITE_PRIX,
     CONF_FACTURATION,
+    CONF_FIN_PERIODE,
     CONF_INDEX,
     CONF_INDEX_RELEVE,
     CONF_MONTANT_FACTURE,
@@ -163,6 +164,9 @@ class SuiviFacture:
 
     @property
     def fin_periode(self) -> date:
+        """Fin saisie (période entre deux dates), sinon relève + durée de la facturation."""
+        if (fin := self.config.get(CONF_FIN_PERIODE)) and date.fromisoformat(fin) > self.date_releve:
+            return date.fromisoformat(fin)
         mois = MOIS_PAR_FACTURATION.get(self.config.get(CONF_FACTURATION, "semestrielle"), 6)
         return ajouter_mois(self.date_releve, mois)
 

@@ -33,15 +33,17 @@
       },
       "releve": {
         "title": "Dernière relève",
-        "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève.",
+        "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève. La période se termine après la durée choisie, ou à la date de fin si tu la connais.",
         "data": {
           "facturation": "Durée de la période facturée",
           "date_releve": "Début de la période (dernière relève)",
+          "fin_periode": "Fin de la période (facultatif)",
           "index_releve": "Index à la dernière relève"
         },
         "data_description": {
-          "facturation": "La période commence à la date de relève : par exemple 3 mois à partir du 1er avril pour une facture trimestrielle.",
-          "date_releve": "Date de début de la période, indiquée sur ta dernière facture (dernière relève de l'index)."
+          "facturation": "Durée par défaut : la période commence à la date de relève, par exemple 3 mois à partir du 1er avril pour une facture trimestrielle. Ignorée si une date de fin est saisie.",
+          "date_releve": "Date de début de la période, indiquée sur ta dernière facture (dernière relève de l'index).",
+          "fin_periode": "Seulement si ta facture ne suit pas un rythme régulier (par exemple du 05/09/2025 au 18/08/2026) : la date de fin remplace alors la durée. Laisse vide pour utiliser la durée."
         }
       },
       "entite_prix": {
@@ -76,7 +78,8 @@
       "unite_prix": "Le capteur doit être un prix au m³ (unité €/m³).",
       "prix_indisponible": "Le prix de ce capteur est indisponible pour l'instant.",
       "volume_nul": "Le volume doit être supérieur à zéro.",
-      "tarif_invalide": "Tarif invalide : {erreur}"
+      "tarif_invalide": "Tarif invalide : {erreur}",
+      "fin_avant_debut": "La fin de la période doit être après son début."
     },
     "abort": {
       "already_configured": "Ce capteur a déjà sa facture."
@@ -116,15 +119,17 @@
       },
       "releve": {
         "title": "Dernière relève",
-        "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève.",
+        "description": "Reprends la date et l'index de ta dernière facture : le coût est calculé depuis cette relève. La période se termine après la durée choisie, ou à la date de fin si tu la connais.",
         "data": {
           "facturation": "Durée de la période facturée",
           "date_releve": "Début de la période (dernière relève)",
+          "fin_periode": "Fin de la période (facultatif)",
           "index_releve": "Index à la dernière relève"
         },
         "data_description": {
-          "facturation": "La période commence à la date de relève : par exemple 3 mois à partir du 1er avril pour une facture trimestrielle.",
-          "date_releve": "Date de début de la période, indiquée sur ta dernière facture (dernière relève de l'index)."
+          "facturation": "Durée par défaut : la période commence à la date de relève, par exemple 3 mois à partir du 1er avril pour une facture trimestrielle. Ignorée si une date de fin est saisie.",
+          "date_releve": "Date de début de la période, indiquée sur ta dernière facture (dernière relève de l'index).",
+          "fin_periode": "Seulement si ta facture ne suit pas un rythme régulier (par exemple du 05/09/2025 au 18/08/2026) : la date de fin remplace alors la durée. Laisse vide pour utiliser la durée."
         }
       },
       "entite_prix": {
@@ -163,7 +168,8 @@
       "unite_prix": "Le capteur doit être un prix au m³ (unité €/m³).",
       "prix_indisponible": "Le prix de ce capteur est indisponible pour l'instant.",
       "volume_nul": "Le volume doit être supérieur à zéro.",
-      "tarif_invalide": "Tarif invalide : {erreur}"
+      "tarif_invalide": "Tarif invalide : {erreur}",
+      "fin_avant_debut": "La fin de la période doit être après son début."
     }
   },
   "selector": {

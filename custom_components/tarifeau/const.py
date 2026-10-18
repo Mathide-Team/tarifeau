@@ -13,6 +13,7 @@ CONF_MONTANT_FACTURE = "montant_facture"  # € TTC de la dernière facture (sou
 CONF_VOLUME_FACTURE = "volume_facture"  # m³ de la dernière facture
 CONF_FACTURATION = "facturation"
 CONF_DATE_RELEVE = "date_releve"  # AAAA-MM-JJ
+CONF_FIN_PERIODE = "fin_periode"  # AAAA-MM-JJ, facultatif : fin réelle de la période (sinon durée)
 CONF_INDEX_RELEVE = "index_releve"  # m³, repris de la facture
 CONF_ASSAINISSEMENT = "assainissement"
 CONF_DIAMETRE = "diametre"  # DN du compteur en mm, si l'abonnement en dépend

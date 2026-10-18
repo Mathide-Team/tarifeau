@@ -7,7 +7,7 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les numéros 
 Première version.
 
 ### Ajouté
-- **Configuration depuis l'interface** (#4) : capteur d'index en m³ ou en L, source du tarif, diamètre du compteur si le tarif en dépend, dernière relève, qui marque le début d'une période de 1, 2, 3, 4, 6 ou 12 mois (#20). Les options permettent de changer de tarif ou de saisir une nouvelle relève. Une entrée par compteur.
+- **Configuration depuis l'interface** (#4) : capteur d'index en m³ ou en L, source du tarif, diamètre du compteur si le tarif en dépend, dernière relève, qui marque le début d'une période de 1, 2, 3, 4, 6 ou 12 mois (#20). La fin de la période peut aussi être saisie, pour une facture irrégulière (#35). Les options permettent de changer de tarif ou de saisir une nouvelle relève. Une entrée par compteur.
 - **Modèle de tarif en YAML** (#2) : périodes, services, abonnements, composantes, tranches annuelles cumulées ou proratisées, TVA par service, factures types vérifiées.
 - **Moteur de calcul** (#3) : découpage au 1er janvier et à chaque changement de tarif, abonnement au jour près, prix marginal, compteur remplacé.
 - **Capteurs** (#5) : coût depuis la relève (détail ligne par ligne), coût du jour et du mois, estimation de la prochaine facture, prix marginal (pour le tableau de bord Énergie), prix moyen, volume, tranche.

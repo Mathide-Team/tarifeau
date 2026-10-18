@@ -108,7 +108,7 @@ Puis Paramètres → Tableaux de bord → Ajouter un tableau de bord → à part
 
 ## Décrire un tarif
 
-Un tarif est un fichier YAML, rangé dans `custom_components/tarifeau/tarifs/`. Le format est documenté en tête de `modele.py` :
+Un tarif est un fichier YAML, rangé dans `custom_components/tarifeau/tarifs/` (préréglages) ou dans `/config/tarifeau/` (tarifs personnels). Le format est documenté en tête de `modele.py` :
 
 - une ou plusieurs **périodes** (dates d'effet), chacune avec l'URL de la délibération ;
 - pour chaque **service** (`eau_potable`, `assainissement`, `autre`) : son taux de TVA, ses abonnements (€ HT/an) et ses composantes au m³ (€ HT/m³), éventuellement par **tranches annuelles** ;
@@ -122,6 +122,17 @@ Préréglages fournis :
 | Grand Belfort (régie) | 01/05/2026 | 624,32 € TTC (assainissement non assujetti à la TVA) | [page Abonnements et tarifs](https://www.grandbelfort.fr/eau/abonnements-et-tarifs.html) |
 
 Ta commune manque ? Ouvre une issue **« Ajouter ma commune »**, ou suis le guide [`tarifs/CONTRIBUER.md`](custom_components/tarifeau/tarifs/CONTRIBUER.md).
+
+### Mon propre tarif (fichier YAML)
+
+Sans attendre un préréglage, tu peux écrire ton tarif complet dans un fichier YAML personnel, au même format :
+
+1. Crée le dossier `tarifeau` à côté de `configuration.yaml` (`/config/tarifeau/`), par exemple avec l'extension File editor ou Studio Code Server.
+2. Copie-y [`docs/exemples/mon_tarif.yaml`](docs/exemples/mon_tarif.yaml) sous le nom `ma_commune.yaml`, puis remplace les valeurs par celles de ta facture.
+3. **Configurer → Vérifier mes fichiers de tarif** : chaque fichier est déclaré valide, ou l'erreur est indiquée avec le chemin de la valeur fautive (par exemple `tarif.periodes[0].services.eau_potable.composantes[0].tranches[0].prix_ht`).
+4. **Configurer → Changer de tarif → Tarif d'une collectivité** : ton fichier apparaît sous « Mon tarif : … ».
+
+Après une modification d'un fichier déjà utilisé, recharge l'intégration (⋮ → Recharger). Si le fichier disparaît ou devient invalide, l'entrée s'arrête avec le message d'erreur, plutôt que de calculer une facture fausse. Le guide complet est dans [`docs/tarif-personnel.md`](docs/tarif-personnel.md). Un tarif qui marche peut ensuite être proposé au dépôt, pour en faire un préréglage.
 
 ## Limites
 

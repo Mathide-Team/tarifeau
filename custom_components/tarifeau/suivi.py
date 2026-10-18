@@ -12,6 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT
@@ -40,7 +41,15 @@ from .const import (
     SOURCE_TAUX_FACTURE,
     UNITES_INDEX,
 )
-from .modele import Tarif, avec_diametre, charger_tarif, prolonger, sans_assainissement, tarif_prix_fixe
+from .modele import (
+    NOM_DOSSIER_PERSO,
+    Tarif,
+    avec_diametre,
+    charger_tarif,
+    prolonger,
+    sans_assainissement,
+    tarif_prix_fixe,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,7 +97,12 @@ def tarif_taux_facture(montant_ttc: float | Decimal, volume: float | Decimal) ->
     return tarif_prix_fixe(prix, nom=f"Taux de la dernière facture {prix} €/m³")
 
 
-def charger_tarif_config(config: dict[str, Any]) -> Tarif | None:
+def dossier_perso(hass: HomeAssistant) -> Path:
+    """Dossier des tarifs personnels : ``<config>/tarifeau/`` (issue #17)."""
+    return Path(hass.config.path(NOM_DOSSIER_PERSO))
+
+
+def charger_tarif_config(config: dict[str, Any], dossier_perso: Path | None = None) -> Tarif | None:
     """Tarif de l'entrée (lecture de fichier : à appeler hors de la boucle d'événements).
 
     ``None`` pour la source « entité de prix » : le tarif est lu sur l'entité à chaque calcul.
@@ -98,7 +112,7 @@ def charger_tarif_config(config: dict[str, Any]) -> Tarif | None:
     if config.get(CONF_SOURCE) == SOURCE_TAUX_FACTURE:
         return tarif_taux_facture(config[CONF_MONTANT_FACTURE], config[CONF_VOLUME_FACTURE])
     if config.get(CONF_SOURCE) == SOURCE_PREREGLAGE:
-        tarif = charger_tarif(config[CONF_PREREGLAGE])
+        tarif = charger_tarif(config[CONF_PREREGLAGE], dossier_perso)
         if CONF_DIAMETRE in config:
             tarif = avec_diametre(tarif, config[CONF_DIAMETRE])
         return tarif if config.get(CONF_ASSAINISSEMENT, True) else sans_assainissement(tarif)

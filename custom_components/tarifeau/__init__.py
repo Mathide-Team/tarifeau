@@ -9,6 +9,7 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
@@ -16,7 +17,8 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
 from .factures import async_enregistrer_actions, id_alerte, store_factures
-from .suivi import SuiviFacture, charger_tarif_config
+from .modele import TarifInvalide
+from .suivi import SuiviFacture, charger_tarif_config, dossier_perso
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
@@ -34,7 +36,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: TarifeauConfigEntry) -> bool:
     """Charge le tarif (hors boucle), démarre le suivi puis les capteurs."""
     config = {**entry.data, **entry.options}
-    tarif = await hass.async_add_executor_job(charger_tarif_config, config)
+    try:
+        tarif = await hass.async_add_executor_job(charger_tarif_config, config, dossier_perso(hass))
+    except TarifInvalide as err:
+        # Fichier personnel supprimé ou devenu invalide : l'entrée affiche l'erreur, sans réessayer.
+        raise ConfigEntryError(
+            translation_domain=DOMAIN,
+            translation_key="tarif_invalide",
+            translation_placeholders={"erreur": str(err)},
+        ) from err
     store: Store[dict[str, str]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
     reperes = await store.async_load() or {}
     historique = store_factures(hass, entry.entry_id)

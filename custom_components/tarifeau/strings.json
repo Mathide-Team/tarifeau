@@ -18,7 +18,7 @@
       },
       "prereglage": {
         "title": "Tarif de ta collectivité",
-        "description": "Tarifs tirés des délibérations officielles. Ta commune manque ? Voir le guide de contribution du dépôt.",
+        "description": "Tarifs tirés des délibérations officielles. Ta commune manque ? Voir le guide de contribution du dépôt, ou écris ton propre tarif dans un fichier YAML du dossier `{dossier}` : il apparaît ici sous « Mon tarif ».",
         "data": {
           "prereglage": "Collectivité",
           "assainissement": "Raccordé au tout-à-l'égout (assainissement collectif)"
@@ -75,7 +75,8 @@
       "date_future": "La date est dans le futur.",
       "unite_prix": "Le capteur doit être un prix au m³ (unité €/m³).",
       "prix_indisponible": "Le prix de ce capteur est indisponible pour l'instant.",
-      "volume_nul": "Le volume doit être supérieur à zéro."
+      "volume_nul": "Le volume doit être supérieur à zéro.",
+      "tarif_invalide": "Tarif invalide : {erreur}"
     },
     "abort": {
       "already_configured": "Ce capteur a déjà sa facture."
@@ -87,7 +88,8 @@
         "title": "Facture d'eau",
         "menu_options": {
           "tarif": "Changer de tarif",
-          "releve": "Nouvelle relève (facture reçue)"
+          "releve": "Nouvelle relève (facture reçue)",
+          "verifier": "Vérifier mes fichiers de tarif"
         }
       },
       "tarif": {
@@ -99,7 +101,7 @@
       },
       "prereglage": {
         "title": "Tarif de ta collectivité",
-        "description": "Tarifs tirés des délibérations officielles. Ta commune manque ? Voir le guide de contribution du dépôt.",
+        "description": "Tarifs tirés des délibérations officielles. Ta commune manque ? Voir le guide de contribution du dépôt, ou écris ton propre tarif dans un fichier YAML du dossier `{dossier}` : il apparaît ici sous « Mon tarif ».",
         "data": {
           "prereglage": "Collectivité",
           "assainissement": "Raccordé au tout-à-l'égout (assainissement collectif)"
@@ -146,6 +148,10 @@
         "data": {
           "diametre": "Diamètre"
         }
+      },
+      "verifier": {
+        "title": "Mes fichiers de tarif",
+        "description": "Fichiers YAML du dossier `{dossier}` (même format que les préréglages, voir docs/tarif-personnel.md) :\n\n{rapport}\n\nAprès une modification d'un fichier déjà utilisé, recharge l'intégration pour la prendre en compte."
       }
     },
     "error": {
@@ -156,7 +162,8 @@
       "date_future": "La date est dans le futur.",
       "unite_prix": "Le capteur doit être un prix au m³ (unité €/m³).",
       "prix_indisponible": "Le prix de ce capteur est indisponible pour l'instant.",
-      "volume_nul": "Le volume doit être supérieur à zéro."
+      "volume_nul": "Le volume doit être supérieur à zéro.",
+      "tarif_invalide": "Tarif invalide : {erreur}"
     }
   },
   "selector": {
@@ -254,6 +261,9 @@
     },
     "index_incoherent": {
       "message": "L'index relevé dépasse l'index actuel du compteur ({actuel} m³)."
+    },
+    "tarif_invalide": {
+      "message": "Tarif personnel invalide ou absent : {erreur}. Corrige le fichier (Configurer → Vérifier mes fichiers de tarif), puis recharge l'intégration."
     }
   },
   "issues": {

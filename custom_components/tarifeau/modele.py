@@ -45,7 +45,7 @@ from typing import Any
 import yaml
 
 SERVICES = ("eau_potable", "assainissement", "autre")
-FACTURATIONS = ("annuelle", "semestrielle", "trimestrielle", "mensuelle")
+FACTURATIONS = ("mensuelle", "bimestrielle", "trimestrielle", "quadrimestrielle", "semestrielle", "annuelle")
 REGLES_TRANCHES = ("cumul_annuel", "prorata")
 DOSSIER_TARIFS = Path(__file__).parent / "tarifs"
 

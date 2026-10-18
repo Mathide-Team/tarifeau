@@ -35,6 +35,15 @@ EVENEMENT_ECART = "tarifeau_ecart_facture"  # écart au-delà du seuil (automati
 SEUIL_ECART = 10  # % : au-delà, alerte dans Paramètres > Réparations
 HISTORIQUE_MAX = 60  # factures gardées par entrée (30 ans en semestriel)
 
-FACTURATIONS = ("annuelle", "semestrielle")
+# Durée d'une période de facturation, à partir de la date de relève (issue #20).
+MOIS_PAR_FACTURATION = {
+    "mensuelle": 1,
+    "bimestrielle": 2,
+    "trimestrielle": 3,
+    "quadrimestrielle": 4,
+    "semestrielle": 6,
+    "annuelle": 12,
+}
+FACTURATIONS = tuple(MOIS_PAR_FACTURATION)
 UNITES_INDEX = {"m³": 1, "L": 1000}  # unité → diviseur vers le m³
 STATE_CLASSES_INDEX = ("total_increasing", "total")

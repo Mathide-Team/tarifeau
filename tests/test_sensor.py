@@ -31,7 +31,7 @@ from custom_components.tarifeau.const import (
     CONF_SOURCE,
     DOMAIN,
 )
-from custom_components.tarifeau.modele import charger_tarif
+from custom_components.tarifeau.modele import charger_tarif, prolonger
 from custom_components.tarifeau.suivi import ajouter_mois
 
 INDEX = "sensor.compteur_eau_volume_total"
@@ -196,6 +196,38 @@ async def test_annee_suivante_sans_assainissement_minuit(hass: HomeAssistant, fr
     entry.runtime_data.rafraichir()  # comme à minuit
     await hass.async_block_till_done()
     assert _valeur(hass, ids["cout_releve"]) == avant
+
+
+@pytest.mark.parametrize(
+    ("facturation", "fin"),
+    [
+        ("mensuelle", "2026-05-01"),
+        ("bimestrielle", "2026-06-01"),
+        ("trimestrielle", "2026-07-01"),
+        ("quadrimestrielle", "2026-08-01"),
+        ("semestrielle", "2026-10-01"),
+        ("annuelle", "2027-04-01"),
+    ],
+)
+async def test_duree_de_la_periode_depuis_la_releve(hass: HomeAssistant, freezer, facturation, fin) -> None:
+    """Issue #20 : une date de début (la relève) et une durée, par exemple 3 mois depuis le 1er avril."""
+    freezer.move_to("2026-04-16 12:00:00+02:00")
+    hass.states.async_set(INDEX, "115", ATTRS)
+    entry = _entree(hass, **{CONF_FACTURATION: facturation, CONF_DATE_RELEVE: "2026-04-01"})
+    ids = await _demarrer(hass, entry)
+    estimation = hass.states.get(ids["estimation"])
+    assert estimation.attributes["fin_periode"] == fin
+    # Volume projeté au rythme actuel (15 m³ en 16 jours) jusqu'à la fin de la période.
+    jours = (date.fromisoformat(fin) - date(2026, 4, 1)).days
+    tarif, _ = prolonger(charger_tarif("grand_besancon_regie"), date(2026, 4, 1), date.fromisoformat(fin))
+    attendu = facture_periode(
+        tarif,
+        date(2026, 4, 1),
+        date.fromisoformat(fin),
+        Decimal(15) * jours / 16,
+        Decimal(15) / 16 * 90,  # cumul de l'année avant la relève, au même rythme
+    )
+    assert _valeur(hass, ids["estimation"]) == f"{attendu.total_ttc:.2f}"
 
 
 @pytest.mark.parametrize(

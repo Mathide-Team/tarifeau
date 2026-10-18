@@ -34,6 +34,7 @@ from .const import (
     CONF_PRIX_FIXE,
     CONF_SOURCE,
     CONF_VOLUME_FACTURE,
+    MOIS_PAR_FACTURATION,
     SOURCE_ENTITE_PRIX,
     SOURCE_PREREGLAGE,
     SOURCE_TAUX_FACTURE,
@@ -42,8 +43,6 @@ from .const import (
 from .modele import Tarif, avec_diametre, charger_tarif, prolonger, sans_assainissement, tarif_prix_fixe
 
 _LOGGER = logging.getLogger(__name__)
-
-MOIS_PAR_FACTURATION = {"annuelle": 12, "semestrielle": 6}
 
 
 def ajouter_mois(jour: date, mois: int) -> date:

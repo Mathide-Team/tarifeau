@@ -56,8 +56,15 @@ def test_plusieurs_entrees(tmp_path) -> None:
     assert generer.main(["Maison", "Dupont", "--max", "400", "-o", str(sortie)]) == 0
     tableau = yaml.safe_load(sortie.read_text(encoding="utf-8"))
     sections = tableau["views"][0]["sections"]
-    assert [s["cards"][0]["heading"] for s in sections] == ["Maison", "Dupont"]
-    assert sections[1]["cards"][1]["max"] == 400
+    assert [s["cards"][0]["heading"] for s in sections] == [
+        "Maison",
+        "Maison : coûts",
+        "Maison : détail de la facture en cours",
+        "Dupont",
+        "Dupont : coûts",
+        "Dupont : détail de la facture en cours",
+    ]
+    assert sections[3]["cards"][1]["max"] == 400
     entites = _entites(tableau)
     assert {f"sensor.dupont_{cle}" for cle in generer.CLES} <= entites
     assert all(e.startswith(("sensor.maison_", "sensor.dupont_")) for e in entites)
@@ -80,9 +87,12 @@ async def test_entites_et_carte_detail_sur_une_vraie_entree(hass: HomeAssistant)
     tableau = generer.tableau(["Maison"], 300)
     for entity_id in _entites(tableau):
         assert hass.states.get(entity_id) is not None, entity_id
-    detail = tableau["views"][0]["sections"][0]["cards"][-1]["content"]
+    detail = tableau["views"][0]["sections"][2]["cards"][-1]["content"]
     rendu = Template(detail, hass).async_render(parse_result=False)
-    assert "| Eau potable | Abonnement eau potable |" in rendu
-    assert "| **Assainissement** | TVA 10.0 % |" in rendu
+    assert "| **Eau potable** | | | |" in rendu
+    assert "| **Total assainissement** | TVA 10 % |" in rendu
+    assert rendu.count("| **Assainissement** | | | |") == 1  # un intertitre par service
+    assert "| Abonnement eau potable | 91 j | 15 €/an | 3,74 € |" in rendu  # 1er janvier → 1er avril
+    assert "| Redevance consommation d'eau potable | 30 m³ | 0,39 €/m³ | 11,70 € |" in rendu
     assert "Grand Besançon Métropole (régie)" in rendu
     assert "prolongé" not in rendu

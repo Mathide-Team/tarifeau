@@ -70,6 +70,7 @@ class Ligne:
     redevance: bool = False
     du: date | None = None
     au: date | None = None  # exclu
+    unite: str = "m³"  # « an » pour un abonnement (quantité = fraction d'année)
 
 
 @dataclass(frozen=True)
@@ -165,6 +166,7 @@ def _lignes(service: Service, morceau: Morceau) -> list[Ligne]:
             a.montant_ht_an * morceau.fraction_annee,
             du=morceau.du,
             au=morceau.au,
+            unite="an",
         )
         for a in service.abonnements
     ]

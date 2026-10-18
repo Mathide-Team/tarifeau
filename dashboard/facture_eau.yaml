@@ -27,7 +27,7 @@ views:
       needle: true
     - type: tile
       entity: sensor.facture_d_eau_estimation
-      name: Prochaine facture (estimation)
+      name: Prochaine facture
       vertical: true
     - type: tile
       entity: sensor.facture_d_eau_cout_jour
@@ -39,7 +39,7 @@ views:
       icon: mdi:calendar-month
     - type: tile
       entity: sensor.facture_d_eau_ecart_facture
-      name: Écart dernière facture
+      name: Écart facture
       icon: mdi:receipt-text-check
     - type: tile
       entity: sensor.facture_d_eau_prix_marginal
@@ -51,12 +51,18 @@ views:
       icon: mdi:scale-balance
     - type: tile
       entity: sensor.facture_d_eau_volume_releve
-      name: Volume depuis la relève
+      name: Volume
       icon: mdi:water
     - type: tile
       entity: sensor.facture_d_eau_tranche
       name: Tranche actuelle
       icon: mdi:stairs
+  - type: grid
+    cards:
+    - type: heading
+      heading: 'Facture d''eau : coûts'
+      heading_style: subtitle
+      icon: mdi:chart-bar
     - type: statistics-graph
       title: Coût par jour
       entities:
@@ -75,19 +81,33 @@ views:
       period: month
       days_to_show: 365
       chart_type: bar
+  - type: grid
+    column_span: 2
+    cards:
+    - type: heading
+      heading: 'Facture d''eau : détail de la facture en cours'
+      heading_style: subtitle
+      icon: mdi:receipt-text-outline
     - type: markdown
-      title: Détail de la facture en cours
       content: |-
         {%- set c = 'sensor.facture_d_eau_cout_releve' -%}
         {%- set services = state_attr(c, 'services') or {} -%}
         {%- set noms = {'eau_potable': 'Eau potable', 'assainissement': 'Assainissement', 'autre': 'Prix fixe'} -%}
-        | Service | Ligne | Quantité | Prix HT | Montant HT |
-        |---|---|--:|--:|--:|
+        {%- macro fr(x, f='%.2f') %}{{ (f % x) | replace('.', ',') }}{% endmacro -%}
+        | Ligne | Quantité | Prix HT | Montant HT |
+        |---|--:|--:|--:|
         {%- for l in state_attr(c, 'lignes') or [] %}
-        | {{ noms.get(l.service, l.service) }} | {{ l.libelle }} | {{ l.quantite }} | {{ l.prix_unitaire_ht }} | {{ '%.2f' % l.montant_ht }} € |
+        {%- if loop.changed(l.service) %}
+        | **{{ noms.get(l.service, l.service) }}** | | | |
+        {%- endif %}
+        {%- if l.unite == 'an' %}
+        | {{ l.libelle }} | {{ l.jours ~ ' j' if l.jours is defined else fr(l.quantite, '%g') ~ ' an' }} | {{ fr(l.prix_unitaire_ht, '%g') }} €/an | {{ fr(l.montant_ht) }} € |
+        {%- else %}
+        | {{ l.libelle }} | {{ fr(l.quantite, '%g') }} m³ | {{ fr(l.prix_unitaire_ht, '%g') }} €/m³ | {{ fr(l.montant_ht) }} € |
+        {%- endif %}
         {%- endfor %}
         {%- for code, s in services.items() %}
-        | **{{ noms.get(code, code) }}** | TVA {{ s.taux_tva }} % | | {{ '%.2f' % s.ht }} € HT | **{{ '%.2f' % s.ttc }} € TTC** |
+        | **Total {{ noms.get(code, code) | lower }}** | TVA {{ fr(s.taux_tva, '%g') }} % | {{ fr(s.ht) }} € HT | **{{ fr(s.ttc) }} € TTC** |
         {%- endfor %}
 
         Tarif : [{{ state_attr(c, 'tarif') }}]({{ state_attr(c, 'source') }})

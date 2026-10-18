@@ -209,8 +209,20 @@
       "cout_jour": {
         "name": "Cost today"
       },
+      "cout_hier": {
+        "name": "Cost yesterday"
+      },
+      "cout_semaine": {
+        "name": "Cost this week"
+      },
+      "cout_semaine_derniere": {
+        "name": "Cost last week"
+      },
       "cout_mois": {
         "name": "Cost this month"
+      },
+      "cout_mois_dernier": {
+        "name": "Cost last month"
       },
       "ecart_facture": {
         "name": "Difference with last bill"

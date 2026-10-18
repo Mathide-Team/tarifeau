@@ -102,6 +102,11 @@ def dossier_perso(hass: HomeAssistant) -> Path:
     return Path(hass.config.path(NOM_DOSSIER_PERSO))
 
 
+def debut_semaine(jour: date) -> date:
+    """Lundi de la semaine de ``jour``."""
+    return jour - timedelta(days=jour.weekday())
+
+
 def charger_tarif_config(config: dict[str, Any], dossier_perso: Path | None = None) -> Tarif | None:
     """Tarif de l'entrée (lecture de fichier : à appeler hors de la boucle d'événements).
 
@@ -134,6 +139,11 @@ class Etat:
     tarif_prolonge: bool = False  # dates hors du tarif connu : dernier tarif prolongé
     cout_jour: Decimal | None = None  # € TTC depuis minuit (None : pas encore de repère)
     cout_mois: Decimal | None = None  # € TTC depuis le 1er du mois (ou la relève si elle est plus récente)
+    cout_semaine: Decimal | None = None  # € TTC depuis lundi
+    # Périodes terminées (issue #36) : coût figé au changement de période, None s'il est inconnu.
+    cout_hier: Decimal | None = None
+    cout_semaine_derniere: Decimal | None = None
+    cout_mois_dernier: Decimal | None = None
 
 
 @dataclass
@@ -240,6 +250,19 @@ class SuiviFacture:
         cout_mois = (
             cout_depuis(mois, reperes.get("index_mois")) if reperes.get("mois") == mois.isoformat() else None
         )
+        semaine = debut_semaine(jour)
+        cout_semaine = (
+            cout_depuis(semaine, reperes.get("index_semaine"))
+            if reperes.get("semaine") == semaine.isoformat()
+            else None
+        )
+
+        def termine(cle: str, debut: date) -> Decimal | None:
+            """Coût figé de la période précédente, s'il s'agit bien de celle qui commence à ``debut``."""
+            if reperes.get(f"{cle}_precedent") != debut.isoformat():
+                return None
+            return Decimal(reperes[f"cout_{cle}_precedent"])
+
         return Etat(
             index,
             volume,
@@ -252,6 +275,10 @@ class SuiviFacture:
             prolonge,
             cout_jour,
             cout_mois,
+            cout_semaine,
+            termine("jour", jour - timedelta(days=1)),
+            termine("semaine", semaine - timedelta(days=7)),
+            termine("mois", (mois - timedelta(days=1)).replace(day=1)),
         )
 
     @callback
@@ -272,9 +299,14 @@ class SuiviFacture:
         if index < precedent:  # compteur remplacé : on repart de l'index actuel
             precedent = index
         change = False
-        for cle, debut in (("jour", jour), ("mois", jour.replace(day=1))):
+        for cle, debut in (("jour", jour), ("semaine", debut_semaine(jour)), ("mois", jour.replace(day=1))):
             if self.reperes.get(cle) != debut.isoformat():
                 connu = cle in self.reperes
+                # Période terminée : son coût est figé tel que calculé au dernier relevé (issue #36).
+                cout = getattr(self.etat, f"cout_{cle}", None) if connu else None
+                if cout is not None:
+                    self.reperes[f"{cle}_precedent"] = self.reperes[cle]
+                    self.reperes[f"cout_{cle}_precedent"] = str(cout)
                 self.reperes[cle] = debut.isoformat()
                 # Premier démarrage : sans repère connu, on part de l'index actuel.
                 self.reperes[f"index_{cle}"] = str(precedent if connu else index)

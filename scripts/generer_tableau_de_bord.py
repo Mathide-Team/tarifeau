@@ -28,7 +28,11 @@ NOM_PAR_DEFAUT = "Facture d'eau"
 CLES = (
     "cout_releve",
     "cout_jour",
+    "cout_hier",
+    "cout_semaine",
+    "cout_semaine_derniere",
     "cout_mois",
+    "cout_mois_dernier",
     "ecart_facture",
     "estimation",
     "prix_marginal",
@@ -101,8 +105,6 @@ def sections(nom: str, maximum: int) -> list[dict]:
                 "name": "Prochaine facture",
                 "vertical": True,
             },
-            {"type": "tile", "entity": e["cout_jour"], "name": "Aujourd'hui", "icon": "mdi:calendar-today"},
-            {"type": "tile", "entity": e["cout_mois"], "name": "Ce mois-ci", "icon": "mdi:calendar-month"},
             {
                 "type": "tile",
                 "entity": e["ecart_facture"],
@@ -129,6 +131,28 @@ def sections(nom: str, maximum: int) -> list[dict]:
                 "heading_style": "subtitle",
                 "icon": "mdi:chart-bar",
             },
+            # Coût par période (issue #36) : en cours à gauche, période précédente à droite.
+            {"type": "tile", "entity": e["cout_jour"], "name": "Aujourd'hui", "icon": "mdi:calendar-today"},
+            {"type": "tile", "entity": e["cout_hier"], "name": "Hier", "icon": "mdi:calendar-arrow-left"},
+            {
+                "type": "tile",
+                "entity": e["cout_semaine"],
+                "name": "Cette semaine",
+                "icon": "mdi:calendar-week",
+            },
+            {
+                "type": "tile",
+                "entity": e["cout_semaine_derniere"],
+                "name": "Semaine dernière",
+                "icon": "mdi:calendar-week-begin",
+            },
+            {"type": "tile", "entity": e["cout_mois"], "name": "Ce mois-ci", "icon": "mdi:calendar-month"},
+            {
+                "type": "tile",
+                "entity": e["cout_mois_dernier"],
+                "name": "Mois dernier",
+                "icon": "mdi:calendar-month-outline",
+            },
             {
                 "type": "statistics-graph",
                 "title": "Coût par jour",
@@ -136,6 +160,15 @@ def sections(nom: str, maximum: int) -> list[dict]:
                 "stat_types": ["change"],
                 "period": "day",
                 "days_to_show": 30,
+                "chart_type": "bar",
+            },
+            {
+                "type": "statistics-graph",
+                "title": "Coût par semaine",
+                "entities": [e["cout_releve"]],
+                "stat_types": ["change"],
+                "period": "week",
+                "days_to_show": 84,
                 "chart_type": "bar",
             },
             {

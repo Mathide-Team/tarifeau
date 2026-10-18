@@ -30,14 +30,6 @@ views:
       name: Prochaine facture
       vertical: true
     - type: tile
-      entity: sensor.facture_d_eau_cout_jour
-      name: Aujourd'hui
-      icon: mdi:calendar-today
-    - type: tile
-      entity: sensor.facture_d_eau_cout_mois
-      name: Ce mois-ci
-      icon: mdi:calendar-month
-    - type: tile
       entity: sensor.facture_d_eau_ecart_facture
       name: Écart facture
       icon: mdi:receipt-text-check
@@ -63,6 +55,30 @@ views:
       heading: 'Facture d''eau : coûts'
       heading_style: subtitle
       icon: mdi:chart-bar
+    - type: tile
+      entity: sensor.facture_d_eau_cout_jour
+      name: Aujourd'hui
+      icon: mdi:calendar-today
+    - type: tile
+      entity: sensor.facture_d_eau_cout_hier
+      name: Hier
+      icon: mdi:calendar-arrow-left
+    - type: tile
+      entity: sensor.facture_d_eau_cout_semaine
+      name: Cette semaine
+      icon: mdi:calendar-week
+    - type: tile
+      entity: sensor.facture_d_eau_cout_semaine_derniere
+      name: Semaine dernière
+      icon: mdi:calendar-week-begin
+    - type: tile
+      entity: sensor.facture_d_eau_cout_mois
+      name: Ce mois-ci
+      icon: mdi:calendar-month
+    - type: tile
+      entity: sensor.facture_d_eau_cout_mois_dernier
+      name: Mois dernier
+      icon: mdi:calendar-month-outline
     - type: statistics-graph
       title: Coût par jour
       entities:
@@ -71,6 +87,15 @@ views:
       - change
       period: day
       days_to_show: 30
+      chart_type: bar
+    - type: statistics-graph
+      title: Coût par semaine
+      entities:
+      - sensor.facture_d_eau_cout_releve
+      stat_types:
+      - change
+      period: week
+      days_to_show: 84
       chart_type: bar
     - type: statistics-graph
       title: Coût par mois

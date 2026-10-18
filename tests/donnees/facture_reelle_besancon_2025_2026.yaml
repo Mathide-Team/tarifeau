@@ -1,0 +1,40 @@
+# Facture réelle de régularisation, Grand Besançon Métropole (régie), émise en septembre 2026.
+# Transcription ANONYMISÉE (issues #9, #15 et #26) : seuls les montants sont repris.
+# Aucun nom, adresse, commune, numéro de compte, de contrat, de compteur, de facture
+# ni de mandat. Les index ne sont pas repris, seul le volume l'est. L'image n'est pas versionnée.
+#
+# Particularités :
+# - période irrégulière : du 05/09/2025 au 18/08/2026 inclus (348 jours), voir l'issue #35 ;
+# - tarifs 2025 (avant la convergence de 2026) propres à la commune, donc absents du
+#   préréglage : ils sont repris ici sous « tarif_2025 » ;
+# - tranche gratuite proratisée : 1,42 + 1,44 = 2,86 m³ = 3 m³ x 348 / 365 (issue #15).
+debut: 2025-09-05
+fin: 2026-08-18      # inclus : la période calculée est [debut, fin + 1 jour[
+volume_m3: 88
+tarif_2025:          # € HT, du 01/01/2025 au 31/12/2025
+  abonnement_eau_an: 18.65
+  eau_tranche_2: 1.45
+  eau_tranche_3: 1.49  # non visible (moins de 100 m³) : tranche 2 + 0,04 €, règle du RPQS
+  abonnement_assainissement_an: 8.65
+  assainissement_m3: 1.62
+lignes:              # [libellé, quantité, prix unitaire HT, montant HT, TVA %, montant TTC]
+  - [Abonnement eau du 05/09/2025 au 31/12/2025, 1.00, 18.65, 6.03, 5.5, 6.36]
+  - [Abonnement eau du 01/01/2026 au 18/08/2026, 2.00, 15.00, 9.45, 5.5, 9.97]
+  - [Eau tranche 1 du 05/09/2025 au 24/02/2026, 1.42, 0.00, 0.00, 5.5, 0.00]
+  - [Eau tranche 1 du 25/02/2026 au 18/08/2026, 1.44, 0.00, 0.00, 5.5, 0.00]
+  - [Eau tranche 2 du 05/09/2025 au 31/12/2025, 31.36, 1.45, 45.47, 5.5, 47.97]
+  - [Eau tranche 2 du 01/01/2026 au 24/02/2026, 11.22, 1.38, 15.48, 5.5, 16.33]
+  - [Eau tranche 2 du 25/02/2026 au 18/08/2026, 42.56, 1.38, 58.74, 5.5, 61.97]
+  - [Abonnement assainissement du 05/09/2025 au 31/12/2025, null, 8.65, 2.80, 10, 3.08]
+  - [Abonnement assainissement du 01/01/2026 au 18/08/2026, null, 10.00, 6.30, 10, 6.93]
+  - [Assainissement du 05/09/2025 au 31/12/2025, 30.01, 1.62, 48.62, 10, 53.48]
+  - [Assainissement du 01/01/2026 au 18/08/2026, 57.99, 1.66, 96.26, 10, 105.88]
+  - ["Agence de l'eau : consommation d'eau potable", 88.00, 0.39, 34.32, 5.5, 36.20]
+  - [Performance des réseaux d'eau potable, 88.00, 0.03, 2.64, 5.5, 2.78]
+  - [Performance des systèmes d'assainissement collectif, 88.00, 0.04, 3.52, 10, 3.88]
+  - [Prélèvement sur la ressource en eau, 88.00, 0.065, 5.72, 5.5, 6.04]
+totaux:
+  eau_potable: {ht: 135.17, tva: 7.43, ttc: 142.60}
+  assainissement: {ht: 153.98, tva: 15.39, ttc: 169.37}
+  organismes_publics: {ht: 46.20, tva: 2.70, ttc: 48.90}
+  facture: {ht: 335.35, tva: 25.52, ttc: 360.87}

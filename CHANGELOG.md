@@ -7,6 +7,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les numéros 
 Première version.
 
 ### Ajouté
+- **Facture réelle de référence** (#9) : transcription anonymisée d'une facture du Grand Besançon (05/09/2025 au 18/08/2026, 88 m³, 360,87 € TTC), vérifiée par les tests : 360,70 € calculés avec les tarifs 2025 de la commune, 359,12 € (-0,48 %) avec le préréglage seul.
+- **Préréglage Grand Besançon** : tranches proratisées selon la durée de la facture, comme sur la facture réelle (#15).
 - **Configuration depuis l'interface** (#4) : capteur d'index en m³ ou en L, source du tarif, diamètre du compteur si le tarif en dépend, dernière relève, qui marque le début d'une période de 1, 2, 3, 4, 6 ou 12 mois (#20). Les options permettent de changer de tarif ou de saisir une nouvelle relève. Une entrée par compteur.
 - **Modèle de tarif en YAML** (#2) : périodes, services, abonnements, composantes, tranches annuelles cumulées ou proratisées, TVA par service, factures types vérifiées.
 - **Moteur de calcul** (#3) : découpage au 1er janvier et à chaque changement de tarif, abonnement au jour près, prix marginal, compteur remplacé.

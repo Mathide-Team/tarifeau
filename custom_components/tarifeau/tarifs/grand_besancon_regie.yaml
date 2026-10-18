@@ -4,10 +4,13 @@
 # eau potable 248,83 € TTC + assainissement 235,40 € TTC = 484,23 € TTC.
 # Les 3 premiers m³ annuels sont gratuits (part variable) ; les redevances
 # de l'agence de l'eau s'appliquent à tout le volume.
+# Tranches proratisées selon la durée de la facture (issue #15) : une facture réelle du
+# 05/09/2025 au 18/08/2026 (348 jours) compte 1,42 + 1,44 = 2,86 m³ gratuits, soit
+# 3 m³ x 348 / 365 (tests/donnees/facture_reelle_besancon_2025_2026.yaml, anonymisée).
 id: grand_besancon_regie
 nom: Grand Besançon Métropole (régie)
 facturation: semestrielle
-tranches: cumul_annuel
+tranches: prorata
 periodes:
   - debut: 2026-01-01
     fin: 2026-12-31

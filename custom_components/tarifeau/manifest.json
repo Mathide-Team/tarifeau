@@ -3,10 +3,10 @@
   "name": "tarifeau",
   "codeowners": ["@MathildeDec"],
   "config_flow": true,
-  "documentation": "https://github.com/Mathide-Team/tarifeau",
+  "documentation": "https://github.com/Mathilde-Team/tarifeau",
   "integration_type": "service",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/Mathide-Team/tarifeau/issues",
+  "issue_tracker": "https://github.com/Mathilde-Team/tarifeau/issues",
   "requirements": [],
   "version": "0.1.0"
 }

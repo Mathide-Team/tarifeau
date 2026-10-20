@@ -8,7 +8,7 @@ blueprint:
 
     Prérequis : l'intégration ntfy de Home Assistant, avec un sujet (entité notify).
   domain: automation
-  source_url: https://github.com/Mathide-Team/tarifeau/blob/dev/blueprints/automation/tarifeau/ecart_facture_ntfy.yaml
+  source_url: https://github.com/Mathilde-Team/tarifeau/blob/dev/blueprints/automation/tarifeau/ecart_facture_ntfy.yaml
   input:
     sujet_ntfy:
       name: Sujet ntfy

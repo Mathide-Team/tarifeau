@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Merci. Le guide [CONTRIBUER.md](https://github.com/Mathide-Team/tarifeau/blob/dev/custom_components/tarifeau/tarifs/CONTRIBUER.md) explique où trouver chaque valeur. Ne joins **aucune donnée personnelle** (nom, adresse, n° de contrat ou de compteur).
+        Merci. Le guide [CONTRIBUER.md](https://github.com/Mathilde-Team/tarifeau/blob/dev/custom_components/tarifeau/tarifs/CONTRIBUER.md) explique où trouver chaque valeur. Ne joins **aucune donnée personnelle** (nom, adresse, n° de contrat ou de compteur).
   - type: input
     id: collectivite
     attributes:

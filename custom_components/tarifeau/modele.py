@@ -404,7 +404,7 @@ def tarif_prix_fixe(
     debut: date = date(2000, 1, 1),
     *,
     nom: str | None = None,
-    source: str = "https://github.com/Mathide-Team/tarifeau",
+    source: str = "https://github.com/Mathilde-Team/tarifeau",
     date_source: date | None = None,
 ) -> Tarif:
     """Tarif minimal : un prix TTC au m³, sans abonnement ni TVA séparée (sources « prix fixe » et entité)."""

@@ -2,13 +2,13 @@
 
 Intégration Home Assistant qui calcule **ta facture d'eau réelle** (France) à partir de **ta consommation** : abonnement, tranches, eau potable, assainissement, redevances des agences de l'eau et TVA, sur ta période de facturation. Elle vient avec un tableau de bord.
 
-> Projet en démarrage : la feuille de route est dans les [issues](https://github.com/Mathide-Team/tarifeau/issues). Il est né de [Esphome-Compteur-wmbus#20](https://github.com/Mathide-Team/Esphome-Compteur-wmbus/issues/20).
+> Projet en démarrage : la feuille de route est dans les [issues](https://github.com/Mathilde-Team/tarifeau/issues). Il est né de [Esphome-Compteur-wmbus#20](https://github.com/Mathilde-Team/Esphome-Compteur-wmbus/issues/20).
 
 ## Pourquoi
 
 - Les intégrations d'opérateurs (Veolia, Suez, Eau d'Île-de-France, Eau du Grand Lyon…) lisent la consommation sur le portail client, avec un prix moyen.
 - [HydroTarif](https://github.com/jul-fls/ha-hydrotarif) donne le **prix moyen par commune** d'après SISPEA : TTC, calculé sur 120 m³/an, abonnement réparti.
-- Il manque le **calcul de la facture d'après la conso réelle**, à partir de n'importe quel capteur d'index : compteur wM-Bus [Esphome-Compteur-wmbus](https://github.com/Mathide-Team/Esphome-Compteur-wmbus), capteur à impulsions, intégration d'opérateur… Par exemple, à Besançon, les 3 premiers m³ sont gratuits et la TVA vaut 5,5 % pour l'eau potable, 10 % pour l'assainissement.
+- Il manque le **calcul de la facture d'après la conso réelle**, à partir de n'importe quel capteur d'index : compteur wM-Bus [Esphome-Compteur-wmbus](https://github.com/Mathilde-Team/Esphome-Compteur-wmbus), capteur à impulsions, intégration d'opérateur… Par exemple, à Besançon, les 3 premiers m³ sont gratuits et la TVA vaut 5,5 % pour l'eau potable, 10 % pour l'assainissement.
 
 tarifeau complète ces intégrations sans les refaire. Il peut se servir de HydroTarif comme source de prix par défaut.
 
@@ -16,10 +16,10 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 
 > Première version `v0.1.0` en préparation (issue #10) : voir le [journal des versions](CHANGELOG.md). Home Assistant 2026.3 ou plus récent.
 
-1. HACS → menu ⋮ → **Dépôts personnalisés** → `https://github.com/Mathide-Team/tarifeau`, catégorie **Intégration**.
+1. HACS → menu ⋮ → **Dépôts personnalisés** → `https://github.com/Mathilde-Team/tarifeau`, catégorie **Intégration**.
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
 3. **Paramètres → Appareils et services → Ajouter une intégration → tarifeau**, puis :
-   1. le **capteur d'index** du compteur (m³ ou L, `state_class` `total_increasing` ou `total`), par exemple « Compteur eau - Volume total » d'[Esphome-Compteur-wmbus](https://github.com/Mathide-Team/Esphome-Compteur-wmbus). Une facture par compteur : une par voisin, par exemple ;
+   1. le **capteur d'index** du compteur (m³ ou L, `state_class` `total_increasing` ou `total`), par exemple « Compteur eau - Volume total » d'[Esphome-Compteur-wmbus](https://github.com/Mathilde-Team/Esphome-Compteur-wmbus). Une facture par compteur : une par voisin, par exemple ;
    2. la **source du tarif** : le tarif d'une collectivité (avec ou sans assainissement collectif), un prix fixe TTC au m³, le **taux de ta dernière facture** (montant TTC ÷ volume), ou une **entité de prix** (voir plus bas) ;
    3. la **dernière relève**, qui marque le début de la période : date et index repris de ta dernière facture, et durée de la période facturée (1, 2, 3, 4, 6 ou 12 mois, par exemple 3 mois à partir du 1er avril pour une facture trimestrielle). Si ta facture ne suit pas un rythme régulier, indique aussi la **fin de la période** (par exemple du 05/09/2025 au 18/08/2026) : elle remplace la durée.
 
@@ -29,7 +29,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 
 ### Installation à la main
 
-Copie le dossier `custom_components/tarifeau/` de la [dernière version](https://github.com/Mathide-Team/tarifeau/releases) dans le dossier `custom_components/` de ta configuration Home Assistant (à côté de `configuration.yaml`), redémarre, puis reprends à l'étape 3. Les mises à jour se font de la même façon : remplacer le dossier, puis redémarrer.
+Copie le dossier `custom_components/tarifeau/` de la [dernière version](https://github.com/Mathilde-Team/tarifeau/releases) dans le dossier `custom_components/` de ta configuration Home Assistant (à côté de `configuration.yaml`), redémarre, puis reprends à l'étape 3. Les mises à jour se font de la même façon : remplacer le dossier, puis redémarrer.
 
 ### Exemple complet avec Esphome-Compteur-wmbus
 
@@ -88,7 +88,7 @@ Au-delà du seuil, tarifeau émet aussi l'événement **`tarifeau_ecart_facture`
 
 Le blueprint [`blueprints/automation/tarifeau/ecart_facture_ntfy.yaml`](blueprints/automation/tarifeau/ecart_facture_ntfy.yaml) en fait une notification ntfy, avec l'action `ntfy.publish` de l'intégration ntfy de Home Assistant (déjà utilisée par Esphome-Compteur-wmbus-ntfy). Il se règle en trois champs : le sujet ntfy, la facture (vide = toutes) et la priorité.
 
-[![Importer le blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMathide-Team%2Ftarifeau%2Fblob%2Fdev%2Fblueprints%2Fautomation%2Ftarifeau%2Fecart_facture_ntfy.yaml)
+[![Importer le blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FMathilde-Team%2Ftarifeau%2Fblob%2Fdev%2Fblueprints%2Fautomation%2Ftarifeau%2Fecart_facture_ntfy.yaml)
 
 Pour un autre canal (application mobile, e-mail…), il suffit d'une automatisation déclenchée par cet événement.
 - L'historique (60 factures au plus) est gardé dans le stockage de Home Assistant, et supprimé avec l'entrée.
@@ -171,9 +171,9 @@ uv run -p 3.13 --only-group test pytest --cov     # Home Assistant 2026.2.3 (pyt
 
 La CI lance aussi **hassfest** et la **validation HACS** (job « Validation Home Assistant »). Ce sont des actions Docker : elles tournent sur `ubuntu-latest` tant que la variable `RUNS_ON_DOCKER` n'est pas définie.
 
-## Socle qualité Mathide-Team
+## Socle qualité Mathilde-Team
 
-Ce dépôt est créé depuis [`modele-depot`](https://github.com/Mathide-Team/modele-depot). Il suit le [socle qualité de l'équipe](https://github.com/Mathide-Team/.github/blob/main/SOCLE.md) :
+Ce dépôt est créé depuis [`modele-depot`](https://github.com/Mathilde-Team/modele-depot). Il suit le [socle qualité de l'équipe](https://github.com/Mathilde-Team/.github/blob/main/SOCLE.md) :
 
 - **`main`** (livraison) et **`dev`** (intégration) protégées. On n'y pousse jamais directement : PR vers `dev`, puis PR `dev` → `main`.
 - **CI** : job « Qualité (lint, tests) », requis sur les deux branches. À adapter au langage du projet dans `.github/workflows/ci.yml`, en gardant le nom du job.
@@ -186,9 +186,9 @@ Ce dépôt est créé depuis [`modele-depot`](https://github.com/Mathide-Team/mo
 Les protections ne sont pas copiées par GitHub avec le modèle. Un administrateur les applique une fois :
 
 ```bash
-gh repo create Mathide-Team/<nom> --public --template Mathide-Team/modele-depot --clone
+gh repo create Mathilde-Team/<nom> --public --template Mathilde-Team/modele-depot --clone
 cd <nom>
-scripts/appliquer_socle.sh Mathide-Team/<nom>     # crée dev + applique les protections
+scripts/appliquer_socle.sh Mathilde-Team/<nom>     # crée dev + applique les protections
 ```
 
 Puis pour chaque sujet :

@@ -1,6 +1,6 @@
 # Exemple complet : tarifeau avec Esphome-Compteur-wmbus
 
-[Esphome-Compteur-wmbus](https://github.com/Mathide-Team/Esphome-Compteur-wmbus) lit par radio (wM-Bus) l'index de ton compteur d'eau et de ceux des voisins. tarifeau en fait des factures.
+[Esphome-Compteur-wmbus](https://github.com/Mathilde-Team/Esphome-Compteur-wmbus) lit par radio (wM-Bus) l'index de ton compteur d'eau et de ceux des voisins. tarifeau en fait des factures.
 
 Les noms d'entités ci-dessous sont ceux de la configuration par défaut de l'ESP (`compteur-eau-lora`, « Compteur Eau LoRa »). Retrouve les tiens dans Paramètres → Appareils et services → ESPHome.
 
@@ -62,4 +62,4 @@ Puis Paramètres → Tableaux de bord → Ajouter → à partir de zéro → ⋮
 
 ## 5. À chaque facture
 
-Outils de développement → Actions → **tarifeau : Saisir une facture**, avec les dates, le volume, le montant TTC et l'index relevé. La relève est recalée, et un écart de plus de 10 % lève une alerte (Réparations), qu'on peut aussi recevoir par ntfy : voir le blueprint dans le [README](../README.md#notification-ntfy). Les voisins qui utilisent déjà [Esphome-Compteur-wmbus-ntfy](https://github.com/Mathide-Team/Esphome-Compteur-wmbus-ntfy) peuvent la recevoir sur le même sujet.
+Outils de développement → Actions → **tarifeau : Saisir une facture**, avec les dates, le volume, le montant TTC et l'index relevé. La relève est recalée, et un écart de plus de 10 % lève une alerte (Réparations), qu'on peut aussi recevoir par ntfy : voir le blueprint dans le [README](../README.md#notification-ntfy). Les voisins qui utilisent déjà [Esphome-Compteur-wmbus-ntfy](https://github.com/Mathilde-Team/Esphome-Compteur-wmbus-ntfy) peuvent la recevoir sur le même sujet.

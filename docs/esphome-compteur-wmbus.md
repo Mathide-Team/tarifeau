@@ -55,7 +55,7 @@ Les coûts de l'ESP restent sans abonnement. Pour le montant complet de la factu
 Le générateur fait une section par facture :
 
 ```bash
-uv run --with pyyaml python scripts/generer_tableau_de_bord.py "Facture d'eau" "Dupont" -o factures.yaml
+uv run --with pyyaml --with loguru python scripts/generer_tableau_de_bord.py "Facture d'eau" "Dupont" -o factures.yaml
 ```
 
 Puis Paramètres → Tableaux de bord → Ajouter → à partir de zéro → ⋮ → Éditeur de configuration brute, et colle le fichier.

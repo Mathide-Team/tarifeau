@@ -7,6 +7,7 @@ l'index relevé, la relève de l'entrée est recalée : le suivi repart de cette
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
@@ -37,7 +38,10 @@ from .const import (
     SEUIL_ECART,
     SOURCE_TAUX_FACTURE,
 )
+from .journal import resumer
 from .modele import prolonger
+
+_LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from . import TarifeauConfigEntry
@@ -79,22 +83,33 @@ def _erreur(cle: str, **valeurs: str) -> ServiceValidationError:
 
 def montant_calcule(suivi: SuiviFacture, debut: date, fin: date, volume: Decimal) -> Decimal | None:
     """Montant TTC calculé par l'intégration pour ``volume`` m³ du ``debut`` au ``fin`` (exclu)."""
+    _LOGGER.debug(
+        "montant_calcule: entrée | suivi=%s, debut=%s, fin=%s, volume=%s",
+        resumer(suivi),
+        resumer(debut),
+        resumer(fin),
+        resumer(volume),
+    )
     if suivi.tarif is None:  # entité de prix pas encore connue
+        _LOGGER.debug("montant_calcule: sortie | None")
         return None
     tarif, _ = prolonger(suivi.tarif, debut, fin)
     # Même estimation que le suivi : volume déjà passé dans les tranches avant ``debut``.
     cumul = volume / (fin - debut).days * (debut - date(debut.year, 1, 1)).days
+    _LOGGER.debug("montant_calcule: sortie")
     return facture_periode(tarif, debut, fin, volume, cumul).total_ttc
 
 
 def comparer(suivi: SuiviFacture, saisie: dict[str, Any]) -> dict[str, Any]:
     """Enregistrement d'historique : la facture saisie, le calcul et l'écart."""
+    _LOGGER.debug("comparer: entrée | suivi=%s, saisie=%s", resumer(suivi), resumer(saisie))
     debut, fin = saisie[ATTR_DEBUT], saisie[ATTR_FIN]
     volume = Decimal(str(saisie[ATTR_VOLUME]))
     montant = arrondi_euros(Decimal(str(saisie[ATTR_MONTANT])))
     calcul = montant_calcule(suivi, debut, fin, volume)
     ecart = None if calcul is None else montant - calcul
     ecart_pct = None if ecart is None or calcul == 0 else (ecart / calcul * 100).quantize(Decimal("0.1"))
+    _LOGGER.debug("comparer: sortie")
     return {
         "debut": debut.isoformat(),
         "fin": fin.isoformat(),
@@ -111,27 +126,37 @@ def comparer(suivi: SuiviFacture, saisie: dict[str, Any]) -> dict[str, Any]:
 
 
 def _verifier(hass: HomeAssistant, entry: TarifeauConfigEntry, saisie: dict[str, Any]) -> None:
+    _LOGGER.debug(
+        "_verifier: entrée | hass=%s, entry=%s, saisie=%s", resumer(hass), resumer(entry), resumer(saisie)
+    )
     debut, fin = saisie[ATTR_DEBUT], saisie[ATTR_FIN]
     if fin <= debut:
+        _LOGGER.debug("_verifier: sortie par _erreur")
         raise _erreur("periode_invalide")
     if fin > dt_util.now().date():
+        _LOGGER.debug("_verifier: sortie par _erreur")
         raise _erreur("date_future")
     if (index := saisie.get(ATTR_INDEX)) is not None:
         actuel = entry.runtime_data.lire_index()
         if actuel is not None and Decimal(str(index)) > actuel + Decimal("0.000001"):
+            _LOGGER.debug("_verifier: sortie par _erreur")
             raise _erreur("index_incoherent", actuel=str(actuel))
+    _LOGGER.debug("_verifier: sortie")
 
 
 def _nouvelle_releve(entry: TarifeauConfigEntry, saisie: dict[str, Any]) -> dict[str, Any] | None:
     """Options recalées sur la facture, ou ``None`` si la facture ne permet pas de recaler."""
+    _LOGGER.debug("_nouvelle_releve: entrée | entry=%s, saisie=%s", resumer(entry), resumer(saisie))
     config = {**entry.data, **entry.options}
     index = saisie.get(ATTR_INDEX)
     if index is None:
         # Sans index relevé : on peut avancer depuis la relève actuelle si la facture en part.
         if saisie[ATTR_DEBUT].isoformat() != config[CONF_DATE_RELEVE]:
+            _LOGGER.debug("_nouvelle_releve: sortie | None")
             return None
         index = float(Decimal(str(config[CONF_INDEX_RELEVE])) + Decimal(str(saisie[ATTR_VOLUME])))
     if saisie[ATTR_FIN].isoformat() < config[CONF_DATE_RELEVE]:
+        _LOGGER.debug("_nouvelle_releve: sortie | None")
         return None  # ancienne facture : historique seulement
     options = {k: v for k, v in config.items() if k not in (CONF_NOM, CONF_INDEX)}
     options[CONF_DATE_RELEVE] = saisie[ATTR_FIN].isoformat()
@@ -140,6 +165,7 @@ def _nouvelle_releve(entry: TarifeauConfigEntry, saisie: dict[str, Any]) -> dict
     if config.get(CONF_SOURCE) == SOURCE_TAUX_FACTURE and saisie[ATTR_VOLUME] > 0:
         options[CONF_MONTANT_FACTURE] = saisie[ATTR_MONTANT]
         options[CONF_VOLUME_FACTURE] = saisie[ATTR_VOLUME]
+    _LOGGER.debug("_nouvelle_releve: sortie | %s", resumer(options))
     return options
 
 
@@ -149,9 +175,16 @@ def mettre_a_jour_alerte(hass: HomeAssistant, entry: TarifeauConfigEntry, factur
     Deux canaux : Paramètres → Réparations, et l'événement ``tarifeau_ecart_facture`` pour
     les automatisations (notification ntfy : voir blueprints/automation/tarifeau/).
     """
+    _LOGGER.debug(
+        "mettre_a_jour_alerte: entrée | hass=%s, entry=%s, facture=%s",
+        resumer(hass),
+        resumer(entry),
+        resumer(facture),
+    )
     ecart_pct = facture["ecart_pct"]
     if ecart_pct is None or abs(ecart_pct) <= SEUIL_ECART:
         ir.async_delete_issue(hass, DOMAIN, id_alerte(entry.entry_id))
+        _LOGGER.debug("mettre_a_jour_alerte: sortie")
         return
     hass.bus.async_fire(
         EVENEMENT_ECART,
@@ -182,12 +215,15 @@ def mettre_a_jour_alerte(hass: HomeAssistant, entry: TarifeauConfigEntry, factur
             "seuil": str(SEUIL_ECART),
         },
     )
+    _LOGGER.debug("mettre_a_jour_alerte: sortie")
 
 
 async def async_saisir_facture(hass: HomeAssistant, appel: ServiceCall) -> ServiceResponse:
     """Action ``tarifeau.saisir_facture``."""
+    _LOGGER.debug("async_saisir_facture: entrée | hass=%s, appel=%s", resumer(hass), resumer(appel))
     entry: TarifeauConfigEntry | None = hass.config_entries.async_get_entry(appel.data[ATTR_ENTREE])
     if entry is None or entry.domain != DOMAIN or entry.state is not ConfigEntryState.LOADED:
+        _LOGGER.debug("async_saisir_facture: sortie par _erreur")
         raise _erreur("entree_inconnue")
     saisie = dict(appel.data)
     _verifier(hass, entry, saisie)
@@ -202,11 +238,14 @@ async def async_saisir_facture(hass: HomeAssistant, appel: ServiceCall) -> Servi
     if options is not None:
         hass.config_entries.async_update_entry(entry, options=options)
         hass.config_entries.async_schedule_reload(entry.entry_id)
+    _LOGGER.debug("async_saisir_facture: sortie")
     return {**facture, "releve_recalee": options is not None}
 
 
 def async_enregistrer_actions(hass: HomeAssistant) -> None:
     """Déclare les actions de l'intégration (une fois, au chargement du domaine)."""
+
+    _LOGGER.debug("async_enregistrer_actions: entrée | hass=%s", resumer(hass))
 
     async def _saisir(appel: ServiceCall) -> ServiceResponse:
         return await async_saisir_facture(hass, appel)
@@ -218,3 +257,4 @@ def async_enregistrer_actions(hass: HomeAssistant) -> None:
         schema=SCHEMA_SAISIR_FACTURE,
         supports_response=SupportsResponse.OPTIONAL,
     )
+    _LOGGER.debug("async_enregistrer_actions: sortie")

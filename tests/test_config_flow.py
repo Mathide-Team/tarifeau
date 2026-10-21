@@ -6,6 +6,7 @@ import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.tarifeau.config_flow import _capteur_index_par_defaut
@@ -41,33 +42,94 @@ async def _jusqua_tarif(hass: HomeAssistant, nom: str = "Maison", index: str = I
     )
 
 
+def _defaut_capteur(result) -> str | None:
+    """Défaut du champ « capteur d'index » tel que présenté dans le formulaire."""
+    cle = next(k for k in result["data_schema"].schema if k.schema == CONF_INDEX)
+    try:
+        return cle.default()
+    except TypeError:  # marqueur voluptuous sans défaut
+        return None
+
+
+def _candidat_wmbus(
+    hass: HomeAssistant,
+    entity_id: str = "sensor.compteur_eau_lora_compteur_eau_volume_total",
+    original_name: str | None = "Compteur eau - Volume total",
+    platform: str = "esphome",
+) -> None:
+    """Crée un capteur d'index, inscrit au registre d'entités si original_name est fourni.
+
+    L'inscription au registre précède l'état : sinon le registre dérive un
+    identifiant suffixé (``_2``) qui ne correspond plus au capteur posé.
+    """
+    if original_name is not None:
+        entree = er.async_get(hass).async_get_or_create(
+            "sensor",
+            platform,
+            f"unique-{entity_id}",
+            suggested_object_id=entity_id.split(".", 1)[1],
+            original_name=original_name,
+        )
+        entity_id = entree.entity_id
+    hass.states.async_set(
+        entity_id, "123.456", {"unit_of_measurement": "m³", "state_class": "total_increasing"}
+    )
+
+
 async def test_capteur_wmbus_propose_par_defaut(hass: HomeAssistant) -> None:
     """L'index d'Esphome-Compteur-wmbus est pré-choisi s'il est seul candidat (issue #43)."""
+    _candidat_wmbus(hass)
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
-    cle = next(k for k in result["data_schema"].schema if k.schema == CONF_INDEX)
-    assert callable(cle.default) and cle.default() == INDEX
+    assert _defaut_capteur(result) == "sensor.compteur_eau_lora_compteur_eau_volume_total"
+
+
+async def test_capteur_wmbus_renomme_propose_par_defaut(hass: HomeAssistant) -> None:
+    """Le capteur renommé garde son nom d'origine au registre : toujours proposé."""
+    entree = er.async_get(hass).async_get_or_create(
+        "sensor",
+        "esphome",
+        "unique-renomme",
+        suggested_object_id="index_eau_maison",
+        original_name="Compteur eau - Volume total",
+    )
+    hass.states.async_set(
+        entree.entity_id,
+        "123.456",
+        {
+            "unit_of_measurement": "m³",
+            "state_class": "total_increasing",
+            "friendly_name": "Index maison",
+        },
+    )
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    assert _defaut_capteur(result) == entree.entity_id
 
 
 async def test_capteur_wmbus_ambigu_pas_de_defaut(hass: HomeAssistant) -> None:
-    """Deux capteurs « volume total » : aucun n'est imposé par défaut."""
-    hass.states.async_set(
-        "sensor.deuxieme_esp_compteur_eau_volume_total",
-        "12",
-        {"unit_of_measurement": "m³", "state_class": "total_increasing"},
-    )
+    """Deux capteurs ESPHome « volume total » : aucun n'est imposé par défaut."""
+    _candidat_wmbus(hass)
+    _candidat_wmbus(hass, entity_id="sensor.deuxieme_esp_compteur_eau_volume_total")
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    assert _defaut_capteur(result) is None
+    assert _capteur_index_par_defaut(hass) is None
+
+
+async def test_capteur_meme_nom_hors_esphome_pas_de_defaut(hass: HomeAssistant) -> None:
+    """Un capteur d'une autre intégration portant le même nom n'est pas pré-choisi."""
+    _candidat_wmbus(hass, platform="autre_integration")
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    assert _defaut_capteur(result) is None
     assert _capteur_index_par_defaut(hass) is None
 
 
 async def test_capteur_sans_nom_wmbus_pas_de_defaut(hass: HomeAssistant) -> None:
     """Un capteur d'index valide mais sans lien avec le compteur wM-Bus n'est pas pré-choisi."""
     hass.states.async_set(INDEX, "123.456")  # remplace : plus d'attributs → candidat invalide
-    hass.states.async_set(
-        "sensor.mon_index_eau",
-        "99",
-        {"unit_of_measurement": "m³", "state_class": "total_increasing"},
-    )
+    _candidat_wmbus(hass, entity_id="sensor.mon_index_eau", original_name="Mon index")
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    assert _defaut_capteur(result) is None
     assert _capteur_index_par_defaut(hass) is None
 
 

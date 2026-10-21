@@ -14,7 +14,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import selector
+from homeassistant.helpers import entity_registry, selector
 
 from .const import (
     CHAMPS_SOURCE,
@@ -77,6 +77,39 @@ def _verifier_capteur(hass: HomeAssistant, entity_id: str) -> str | None:
     if etat.attributes.get("state_class") not in STATE_CLASSES_INDEX:
         return "state_class"
     return None
+
+
+def _capteur_index_par_defaut(hass: HomeAssistant) -> str | None:
+    """Capteur d'index à proposer par défaut, s'il est identifiable sans ambiguïté.
+
+    [Esphome-Compteur-wmbus](https://github.com/Mathilde-Team/Esphome-Compteur-wmbus)
+    expose l'index du compteur de la maison sous « Compteur eau - Volume total »
+    (configuration par défaut `compteur-eau-lora`, entité
+    `sensor.compteur_eau_lora_compteur_eau_volume_total`). Le capteur n'est
+    proposé que s'il vient de l'intégration ESPHome (registre d'entités),
+    que son nom désigne bien le volume total du compteur d'eau — même
+    renommé, le nom d'origine du registre est conservé — et qu'il est le
+    seul candidat (issue #43).
+    """
+    registre = entity_registry.async_get(hass)
+    # Un capteur déjà suivi par une entrée Tarif-Eau n'est plus proposé :
+    # l'ajout d'une seconde facture (voisin) ne doit pas pré-choisir un
+    # index qui mènerait à « déjà configuré ».
+    deja_suivis = {entree.unique_id for entree in hass.config_entries.async_entries(DOMAIN)}
+    candidats: list[str] = []
+    for etat in hass.states.async_all("sensor"):
+        if etat.entity_id in deja_suivis or _verifier_capteur(hass, etat.entity_id) is not None:
+            continue
+        entree = registre.async_get(etat.entity_id)
+        if entree is None or entree.platform != "esphome":
+            continue
+        nom = etat.entity_id.split(".", 1)[1]
+        noms = " ".join(filter(None, [entree.original_name, etat.attributes.get("friendly_name")]))
+        if nom.endswith("volume_total") or (
+            "compteur eau" in noms.lower() and "volume total" in noms.lower()
+        ):
+            candidats.append(etat.entity_id)
+    return candidats[0] if len(candidats) == 1 else None
 
 
 async def _noms_prereglages(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
@@ -391,12 +424,13 @@ class TarifeauConfigFlow(_EtapesTarif, ConfigFlow, domain=DOMAIN):
                 self._donnees = {CONF_NOM: nom, CONF_INDEX: user_input[CONF_INDEX]}
                 return await self.async_step_tarif()
 
+        champ_index: Any = vol.Required(CONF_INDEX)
+        if (defaut := _capteur_index_par_defaut(self.hass)) is not None:
+            champ_index = vol.Required(CONF_INDEX, default=defaut)
         schema = vol.Schema(
             {
                 vol.Required(CONF_NOM, default=NOM_PAR_DEFAUT): str,
-                vol.Required(CONF_INDEX): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
-                ),
+                champ_index: selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
             }
         )
         if user_input is not None:

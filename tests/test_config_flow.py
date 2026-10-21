@@ -107,6 +107,18 @@ async def test_capteur_wmbus_renomme_propose_par_defaut(hass: HomeAssistant) -> 
     assert _defaut_capteur(result) == entree.entity_id
 
 
+async def test_capteur_wmbus_deja_configure_pas_de_defaut(hass: HomeAssistant) -> None:
+    """Le capteur de la maison déjà suivi n'est plus proposé à l'ajout d'un voisin."""
+    _candidat_wmbus(hass)
+    MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="sensor.compteur_eau_lora_compteur_eau_volume_total",
+        data={CONF_INDEX: "sensor.compteur_eau_lora_compteur_eau_volume_total"},
+    ).add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    assert _defaut_capteur(result) is None
+
+
 async def test_capteur_wmbus_ambigu_pas_de_defaut(hass: HomeAssistant) -> None:
     """Deux capteurs ESPHome « volume total » : aucun n'est imposé par défaut."""
     _candidat_wmbus(hass)

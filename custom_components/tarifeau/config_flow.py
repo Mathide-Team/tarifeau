@@ -92,9 +92,13 @@ def _capteur_index_par_defaut(hass: HomeAssistant) -> str | None:
     seul candidat (issue #43).
     """
     registre = entity_registry.async_get(hass)
+    # Un capteur déjà suivi par une entrée Tarif-Eau n'est plus proposé :
+    # l'ajout d'une seconde facture (voisin) ne doit pas pré-choisir un
+    # index qui mènerait à « déjà configuré ».
+    deja_suivis = {entree.unique_id for entree in hass.config_entries.async_entries(DOMAIN)}
     candidats: list[str] = []
     for etat in hass.states.async_all("sensor"):
-        if _verifier_capteur(hass, etat.entity_id) is not None:
+        if etat.entity_id in deja_suivis or _verifier_capteur(hass, etat.entity_id) is not None:
             continue
         entree = registre.async_get(etat.entity_id)
         if entree is None or entree.platform != "esphome":

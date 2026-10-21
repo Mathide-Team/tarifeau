@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
@@ -22,8 +23,11 @@ from homeassistant.util import slugify
 from . import TarifeauConfigEntry
 from .calcul import Facture, arrondi_euros
 from .const import DOMAIN, SEUIL_ECART
+from .journal import resumer
 from .modele import prolonger
 from .suivi import Etat, SuiviFacture
+
+_LOGGER = logging.getLogger(__name__)
 
 QUATRE_DECIMALES = Decimal("0.0001")
 
@@ -44,7 +48,9 @@ def _detail(facture: Facture) -> dict[str, Any]:
 
 
 def _attributs_cout(etat: Etat) -> dict[str, Any]:
+    _LOGGER.debug("_attributs_cout: entrée | etat=%s", resumer(etat))
     periode = prolonger(etat.tarif, etat.jour, etat.jour)[0].periode_au(etat.jour)
+    _LOGGER.debug("_attributs_cout: sortie")
     return {
         **_detail(etat.facture),
         "lignes": [
@@ -191,9 +197,16 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: TarifeauConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     """Crée les capteurs de l'entrée."""
+    _LOGGER.debug(
+        "async_setup_entry: entrée | hass=%s, entry=%s, async_add_entities=%s",
+        resumer(hass),
+        resumer(entry),
+        resumer(async_add_entities),
+    )
     async_add_entities(
         [*(CapteurFacture(entry, description) for description in CAPTEURS), CapteurEcart(entry, ECART)]
     )
+    _LOGGER.debug("async_setup_entry: sortie")
 
 
 ECART = SensorEntityDescription(
@@ -212,6 +225,9 @@ class CapteurFacture(RestoreSensor):
     entity_description: DescriptionCapteur
 
     def __init__(self, entry: TarifeauConfigEntry, description: DescriptionCapteur) -> None:
+        _LOGGER.debug(
+            "CapteurFacture.__init__: entrée | entry=%s, description=%s", resumer(entry), resumer(description)
+        )
         self.entity_description = description
         self._suivi: SuiviFacture = entry.runtime_data
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
@@ -225,9 +241,11 @@ class CapteurFacture(RestoreSensor):
             model=self._suivi.tarif.nom if self._suivi.tarif else "Prix moyen (entité)",
             entry_type=DeviceEntryType.SERVICE,
         )
+        _LOGGER.debug("CapteurFacture.__init__: sortie")
 
     async def async_added_to_hass(self) -> None:
         """Restaure la dernière valeur, puis suit les recalculs."""
+        _LOGGER.debug("CapteurFacture.async_added_to_hass: entrée")
         await super().async_added_to_hass()
         devise = self.hass.config.currency
         if self.entity_description.unite_devise:
@@ -238,37 +256,51 @@ class CapteurFacture(RestoreSensor):
             self._attr_native_value = precedent.native_value
         self._mettre_a_jour()
         self.async_on_remove(self._suivi.ecouter(self._sur_calcul))
+        _LOGGER.debug("CapteurFacture.async_added_to_hass: sortie")
 
     @callback
     def _sur_calcul(self) -> None:
+        _LOGGER.debug("CapteurFacture._sur_calcul: entrée")
         self._mettre_a_jour()
         self.async_write_ha_state()
+        _LOGGER.debug("CapteurFacture._sur_calcul: sortie")
 
     @callback
     def _mettre_a_jour(self) -> None:
+        _LOGGER.debug("CapteurFacture._mettre_a_jour: entrée")
         etat = self._suivi.etat
         if etat is None:
+            _LOGGER.debug("CapteurFacture._mettre_a_jour: sortie")
             return
         self._attr_native_value = self.entity_description.valeur(etat)
         if self.entity_description.attributs is not None:
             self._attr_extra_state_attributes = self.entity_description.attributs(etat)
+        _LOGGER.debug("CapteurFacture._mettre_a_jour: sortie")
 
 
 class CapteurEcart(CapteurFacture):
     """Écart entre la dernière facture saisie et le calcul (action ``tarifeau.saisir_facture``)."""
 
     def __init__(self, entry: TarifeauConfigEntry, description: SensorEntityDescription) -> None:
+        _LOGGER.debug(
+            "CapteurEcart.__init__: entrée | entry=%s, description=%s", resumer(entry), resumer(description)
+        )
         super().__init__(entry, description)  # type: ignore[arg-type]
+        _LOGGER.debug("CapteurEcart.__init__: sortie")
 
     async def async_added_to_hass(self) -> None:
         """Lit l'historique, puis suit les nouvelles saisies."""
+        _LOGGER.debug("CapteurEcart.async_added_to_hass: entrée")
         self._attr_native_unit_of_measurement = self.hass.config.currency
         self._mettre_a_jour()
         self.async_on_remove(self._suivi.ecouter(self._sur_calcul))
+        _LOGGER.debug("CapteurEcart.async_added_to_hass: sortie")
 
     @callback
     def _mettre_a_jour(self) -> None:
+        _LOGGER.debug("CapteurEcart._mettre_a_jour: entrée")
         if not self._suivi.factures:
+            _LOGGER.debug("CapteurEcart._mettre_a_jour: sortie")
             return
         derniere = self._suivi.factures[-1]
         self._attr_native_value = None if derniere["ecart"] is None else Decimal(str(derniere["ecart"]))
@@ -281,3 +313,4 @@ class CapteurEcart(CapteurFacture):
                 for f in self._suivi.factures[-12:]
             ],
         }
+        _LOGGER.debug("CapteurEcart._mettre_a_jour: sortie")

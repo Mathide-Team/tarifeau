@@ -35,6 +35,7 @@ appliquer à une facture semestrielle relève du moteur (issue #3, ``tranches``)
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
@@ -43,6 +44,18 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
+_LOGGER = logging.getLogger(__name__)
+
+try:
+    from .journal import resumer
+except ImportError as err:  # module chargé seul, hors paquet (scripts, test sans Home Assistant)
+    _LOGGER.debug("hors paquet, résumé du journal réduit au type : %s", err)
+
+    def resumer(valeur: object) -> str:
+        """Repli hors paquet : le type seul, jamais la valeur."""
+        return f"<{type(valeur).__name__}>"
+
 
 SERVICES = ("eau_potable", "assainissement", "autre")
 FACTURATIONS = ("mensuelle", "bimestrielle", "trimestrielle", "quadrimestrielle", "semestrielle", "annuelle")
@@ -83,6 +96,12 @@ class Composante:
         ``depuis`` : volume déjà consommé dans l'année tarifaire (tranches cumulées).
         ``facteur`` : coefficient appliqué aux seuils annuels (tranches proratisées).
         """
+        _LOGGER.debug(
+            "Composante.volumes_par_tranche: entrée | volume=%s, depuis=%s, facteur=%s",
+            resumer(volume),
+            resumer(depuis),
+            resumer(facteur),
+        )
         debut, fin = depuis, depuis + volume
         resultat, borne_basse = [], Decimal(0)
         for tranche in self.tranches:
@@ -91,13 +110,19 @@ class Composante:
             resultat.append((tranche, max(haut - max(debut, borne_basse), Decimal(0))))
             if borne_haute is not None:
                 borne_basse = borne_haute
+        _LOGGER.debug("Composante.volumes_par_tranche: sortie | %s", resumer(resultat))
         return resultat
 
     def tranche_au(self, cumul: Decimal, facteur: Decimal = Decimal(1)) -> tuple[int, Decimal | None]:
         """Indice de la tranche du prochain m³ après ``cumul`` m³, et volume restant avant la suivante."""
+        _LOGGER.debug(
+            "Composante.tranche_au: entrée | cumul=%s, facteur=%s", resumer(cumul), resumer(facteur)
+        )
         for i, tranche in enumerate(self.tranches):
             if tranche.jusqua is None or cumul < tranche.jusqua * facteur:
+                _LOGGER.debug("Composante.tranche_au: sortie")
                 return i, None if tranche.jusqua is None else tranche.jusqua * facteur - cumul
+        _LOGGER.debug("Composante.tranche_au: sortie par AssertionError")
         raise AssertionError("dernière tranche sans borne")  # pragma: no cover  (garanti par la validation)
 
 
@@ -157,9 +182,12 @@ class Tarif:
 
     def periode_au(self, jour: date) -> Periode:
         """Période en vigueur le ``jour`` donné."""
+        _LOGGER.debug("Tarif.periode_au: entrée | jour=%s", resumer(jour))
         for periode in self.periodes:
             if periode.couvre(jour):
+                _LOGGER.debug("Tarif.periode_au: sortie | %s", resumer(periode))
                 return periode
+        _LOGGER.debug("Tarif.periode_au: sortie par LookupError")
         raise LookupError(f"{self.id} : aucun tarif en vigueur le {jour.isoformat()}")
 
 
@@ -167,16 +195,29 @@ class Tarif:
 
 
 def _exiger(cond: bool, chemin: str, message: str) -> None:
+    _LOGGER.debug(
+        "_exiger: entrée | cond=%s, chemin=%s, message=%s", resumer(cond), resumer(chemin), resumer(message)
+    )
     if not cond:
+        _LOGGER.debug("_exiger: sortie par TarifInvalide")
         raise TarifInvalide(f"{chemin} : {message}")
+    _LOGGER.debug("_exiger: sortie")
 
 
 def _texte(valeur: Any, chemin: str) -> str:
+    _LOGGER.debug("_texte: entrée | valeur=%s, chemin=%s", resumer(valeur), resumer(chemin))
     _exiger(isinstance(valeur, str) and valeur.strip() != "", chemin, "texte non vide attendu")
+    _LOGGER.debug("_texte: sortie")
     return valeur.strip()
 
 
 def _decimal(valeur: Any, chemin: str, *, positif: bool = True) -> Decimal:
+    _LOGGER.debug(
+        "_decimal: entrée | valeur=%s, chemin=%s, positif=%s",
+        resumer(valeur),
+        resumer(chemin),
+        resumer(positif),
+    )
     _exiger(
         isinstance(valeur, int | float | str | Decimal) and not isinstance(valeur, bool),
         chemin,
@@ -185,47 +226,69 @@ def _decimal(valeur: Any, chemin: str, *, positif: bool = True) -> Decimal:
     try:
         nombre = Decimal(str(valeur).replace(",", "."))
     except InvalidOperation:
+        _LOGGER.debug("_decimal: sortie par TarifInvalide")
         raise TarifInvalide(f"{chemin} : nombre attendu, pas « {valeur} »") from None
     _exiger(nombre.is_finite(), chemin, "nombre fini attendu")
     if positif:
         _exiger(nombre >= 0, chemin, "doit être positif ou nul")
+    _LOGGER.debug("_decimal: sortie | %s", resumer(nombre))
     return nombre
 
 
 def _date(valeur: Any, chemin: str) -> date:
+    _LOGGER.debug("_date: entrée | valeur=%s, chemin=%s", resumer(valeur), resumer(chemin))
     if isinstance(valeur, str):
         try:
+            _LOGGER.debug("_date: sortie")
             return date.fromisoformat(valeur)
         except ValueError:
+            _LOGGER.debug("_date: ValueError interceptée")
             pass
     _exiger(isinstance(valeur, date), chemin, "date AAAA-MM-JJ attendue")
+    _LOGGER.debug("_date: sortie | %s", resumer(valeur))
     return valeur
 
 
 def _url(valeur: Any, chemin: str) -> str:
+    _LOGGER.debug("_url: entrée | valeur=%s, chemin=%s", resumer(valeur), resumer(chemin))
     texte = _texte(valeur, chemin)
     _exiger(texte.startswith(("https://", "http://")), chemin, "URL de la délibération attendue")
+    _LOGGER.debug("_url: sortie | %s", resumer(texte))
     return texte
 
 
 def _cles(donnees: Any, chemin: str, permises: set[str], requises: set[str]) -> dict:
+    _LOGGER.debug(
+        "_cles: entrée | donnees=%s, chemin=%s, permises=%s, requises=%s",
+        resumer(donnees),
+        resumer(chemin),
+        resumer(permises),
+        resumer(requises),
+    )
     _exiger(isinstance(donnees, dict), chemin, "objet attendu")
     inconnues = set(donnees) - permises
     _exiger(not inconnues, chemin, f"clé(s) inconnue(s) : {', '.join(sorted(map(str, inconnues)))}")
     manquantes = requises - set(donnees)
     _exiger(not manquantes, chemin, f"clé(s) manquante(s) : {', '.join(sorted(manquantes))}")
+    _LOGGER.debug("_cles: sortie | %s", resumer(donnees))
     return donnees
 
 
 def _liste(valeur: Any, chemin: str, *, vide: bool = True) -> list:
+    _LOGGER.debug(
+        "_liste: entrée | valeur=%s, chemin=%s, vide=%s", resumer(valeur), resumer(chemin), resumer(vide)
+    )
     _exiger(isinstance(valeur, list), chemin, "liste attendue")
     _exiger(vide or len(valeur) > 0, chemin, "au moins un élément attendu")
+    _LOGGER.debug("_liste: sortie | %s", resumer(valeur))
     return valeur
 
 
 def _tranches(donnees: dict, chemin: str) -> tuple[Tranche, ...]:
+    _LOGGER.debug("_tranches: entrée | donnees=%s, chemin=%s", resumer(donnees), resumer(chemin))
     if "prix_ht" in donnees:
         _exiger("tranches" not in donnees, chemin, "« prix_ht » ou « tranches », pas les deux")
+        _LOGGER.debug("_tranches: sortie")
         return (Tranche(None, _decimal(donnees["prix_ht"], f"{chemin}.prix_ht")),)
     _exiger("tranches" in donnees, chemin, "« prix_ht » ou « tranches » attendu")
     brutes = _liste(donnees["tranches"], f"{chemin}.tranches", vide=False)
@@ -243,10 +306,12 @@ def _tranches(donnees: dict, chemin: str) -> tuple[Tranche, ...]:
             _exiger(jusqua > precedent, f"{c}.jusqua", "les seuils doivent croître strictement")
             precedent = jusqua
         tranches.append(Tranche(jusqua, _decimal(brute["prix_ht"], f"{c}.prix_ht")))
+    _LOGGER.debug("_tranches: sortie")
     return tuple(tranches)
 
 
 def _par_diametre(donnees: Any, chemin: str) -> tuple[tuple[int, Decimal], ...]:
+    _LOGGER.debug("_par_diametre: entrée | donnees=%s, chemin=%s", resumer(donnees), resumer(chemin))
     _exiger(isinstance(donnees, dict), chemin, "dictionnaire attendu (DN en mm → € HT/an)")
     table = []
     for dn, montant in donnees.items():
@@ -254,10 +319,14 @@ def _par_diametre(donnees: Any, chemin: str) -> tuple[tuple[int, Decimal], ...]:
             isinstance(dn, int) and not isinstance(dn, bool) and dn > 0, chemin, f"diamètre invalide : {dn!r}"
         )
         table.append((dn, _decimal(montant, f"{chemin}.{dn}")))
+    _LOGGER.debug("_par_diametre: sortie")
     return tuple(sorted(table))
 
 
 def _service(code: str, donnees: Any, chemin: str) -> Service:
+    _LOGGER.debug(
+        "_service: entrée | code=%s, donnees=%s, chemin=%s", resumer(code), resumer(donnees), resumer(chemin)
+    )
     _exiger(code in SERVICES, chemin, f"service inconnu (attendus : {', '.join(SERVICES)})")
     donnees = _cles(donnees, chemin, {"tva", "abonnements", "composantes"}, {"tva"})
     tva = _decimal(donnees["tva"], f"{chemin}.tva")
@@ -289,10 +358,12 @@ def _service(code: str, donnees: Any, chemin: str) -> Service:
             )
         )
     _exiger(bool(abonnements or composantes), chemin, "ni abonnement ni composante")
+    _LOGGER.debug("_service: sortie")
     return Service(code, tva, tuple(abonnements), tuple(composantes))
 
 
 def _periode(donnees: Any, chemin: str) -> Periode:
+    _LOGGER.debug("_periode: entrée | donnees=%s, chemin=%s", resumer(donnees), resumer(chemin))
     donnees = _cles(
         donnees,
         chemin,
@@ -316,11 +387,13 @@ def _periode(donnees: Any, chemin: str) -> Periode:
             )
         )
     source = _url(donnees["source"], f"{chemin}.source")
+    _LOGGER.debug("_periode: sortie")
     return Periode(debut, fin, services, source, date_source, tuple(factures_types))
 
 
 def tarif_depuis_dict(donnees: Any) -> Tarif:
     """Construit et valide un tarif depuis un dictionnaire (YAML ou JSON déjà lu)."""
+    _LOGGER.debug("tarif_depuis_dict: entrée | donnees=%s", resumer(donnees))
     donnees = _cles(
         donnees, "tarif", {"id", "nom", "facturation", "tranches", "periodes"}, {"id", "nom", "periodes"}
     )
@@ -337,6 +410,7 @@ def tarif_depuis_dict(donnees: Any) -> Tarif:
         _exiger(avant.fin is not None, chemin, "la période précédente doit avoir une « fin »")
         _exiger(avant.fin < apres.debut, chemin, "chevauche la période précédente")
         _exiger(avant.fin + timedelta(days=1) == apres.debut, chemin, "trou depuis la période précédente")
+    _LOGGER.debug("tarif_depuis_dict: sortie")
     return Tarif(
         _texte(donnees["id"], "tarif.id"),
         _texte(donnees["nom"], "tarif.nom"),
@@ -348,49 +422,69 @@ def tarif_depuis_dict(donnees: Any) -> Tarif:
 
 def chemin_tarif(source: str | Path, dossier_perso: Path | None = None) -> Path:
     """Fichier d'un tarif : chemin, identifiant de préréglage, ou ``perso:<nom>`` (dossier personnel)."""
+    _LOGGER.debug(
+        "chemin_tarif: entrée | source=%s, dossier_perso=%s", resumer(source), resumer(dossier_perso)
+    )
     if isinstance(source, str) and source.startswith(PREFIXE_PERSO):
         nom = source.removeprefix(PREFIXE_PERSO)
         if dossier_perso is None:
+            _LOGGER.debug("chemin_tarif: sortie par TarifInvalide")
             raise TarifInvalide(f"{nom} : dossier des tarifs personnels inconnu")
         for extension in EXTENSIONS_PERSO:
             if (chemin := dossier_perso / f"{nom}{extension}").is_file():
+                _LOGGER.debug("chemin_tarif: sortie | %s", resumer(chemin))
                 return chemin
+        _LOGGER.debug("chemin_tarif: sortie par TarifInvalide")
         raise TarifInvalide(f"{nom}.yaml : fichier absent du dossier {dossier_perso}")
     chemin = Path(source)
+    _LOGGER.debug("chemin_tarif: sortie")
     return chemin if chemin.suffix else DOSSIER_TARIFS / f"{source}.yaml"
 
 
 def charger_tarif(source: str | Path, dossier_perso: Path | None = None) -> Tarif:
     """Lit un tarif YAML : chemin, identifiant d'un préréglage de ``tarifs/`` ou ``perso:<nom>``."""
+    _LOGGER.debug(
+        "charger_tarif: entrée | source=%s, dossier_perso=%s", resumer(source), resumer(dossier_perso)
+    )
     chemin = chemin_tarif(source, dossier_perso)
     try:
         donnees = yaml.safe_load(chemin.read_text(encoding="utf-8"))
     except yaml.YAMLError as err:
+        _LOGGER.debug("charger_tarif: sortie par TarifInvalide")
         raise TarifInvalide(f"{chemin.name} : YAML invalide ({err})") from None
     except (OSError, UnicodeDecodeError) as err:
+        _LOGGER.debug("charger_tarif: sortie par TarifInvalide")
         raise TarifInvalide(f"{chemin.name} : fichier illisible ({err})") from None
     try:
+        _LOGGER.debug("charger_tarif: sortie")
         return tarif_depuis_dict(donnees)
     except TarifInvalide as err:
+        _LOGGER.debug("charger_tarif: sortie par TarifInvalide")
         raise TarifInvalide(f"{chemin.name} : {err}") from None
 
 
 def tarifs_perso(dossier: Path | None) -> list[str]:
     """Identifiants ``perso:<nom>`` des fichiers YAML du dossier personnel, valides ou non."""
+    _LOGGER.debug("tarifs_perso: entrée | dossier=%s", resumer(dossier))
     if dossier is None or not dossier.is_dir():
+        _LOGGER.debug("tarifs_perso: sortie")
         return []
     noms = {p.stem for p in dossier.iterdir() if p.suffix in EXTENSIONS_PERSO and p.is_file()}
+    _LOGGER.debug("tarifs_perso: sortie")
     return [f"{PREFIXE_PERSO}{nom}" for nom in sorted(noms)]
 
 
 def verifier_tarifs_perso(dossier: Path | None) -> list[tuple[str, Tarif | None, str | None]]:
     """Pour chaque fichier personnel : (identifiant, tarif, ``None``) ou (identifiant, ``None``, erreur)."""
+    _LOGGER.debug("verifier_tarifs_perso: entrée | dossier=%s", resumer(dossier))
     resultats: list[tuple[str, Tarif | None, str | None]] = []
     for ident in tarifs_perso(dossier):
         try:
             resultats.append((ident, charger_tarif(ident, dossier), None))
         except TarifInvalide as err:
+            _LOGGER.debug("verifier_tarifs_perso: TarifInvalide interceptée | %s", err)
             resultats.append((ident, None, str(err)))
+    _LOGGER.debug("verifier_tarifs_perso: sortie | %s", resumer(resultats))
     return resultats
 
 
@@ -408,10 +502,19 @@ def tarif_prix_fixe(
     date_source: date | None = None,
 ) -> Tarif:
     """Tarif minimal : un prix TTC au m³, sans abonnement ni TVA séparée (sources « prix fixe » et entité)."""
+    _LOGGER.debug(
+        "tarif_prix_fixe: entrée | prix_ttc_m3=%s, debut=%s, nom=%s, source=%s, date_source=%s",
+        resumer(prix_ttc_m3),
+        resumer(debut),
+        resumer(nom),
+        resumer(source),
+        resumer(date_source),
+    )
     prix = _decimal(prix_ttc_m3, "prix_fixe")
     composante = Composante("Prix au m³ (TTC)", (Tranche(None, prix),))
     service = Service("autre", Decimal(0), (), (composante,))
     periode = Periode(debut, None, (service,), source, date_source or debut)
+    _LOGGER.debug("tarif_prix_fixe: sortie")
     return Tarif("prix_fixe", nom or f"Prix fixe {prix} €/m³", (periode,))
 
 
@@ -429,6 +532,8 @@ def avec_diametre(tarif: Tarif, diametre: int) -> Tarif:
     (calculées pour le compteur le plus courant) ne s'appliquent plus si un montant change.
     """
 
+    _LOGGER.debug("avec_diametre: entrée | tarif=%s, diametre=%s", resumer(tarif), resumer(diametre))
+
     def abonnement(a: Abonnement) -> Abonnement:
         return replace(a, montant_ht_an=dict(a.par_diametre).get(diametre, a.montant_ht_an))
 
@@ -439,15 +544,18 @@ def avec_diametre(tarif: Tarif, diametre: int) -> Tarif:
         )
         change = services != p.services
         periodes.append(replace(p, services=services, factures_types=() if change else p.factures_types))
+    _LOGGER.debug("avec_diametre: sortie")
     return replace(tarif, periodes=tuple(periodes))
 
 
 def sans_assainissement(tarif: Tarif) -> Tarif:
     """Même tarif, sans le service d'assainissement (logement en assainissement non collectif)."""
+    _LOGGER.debug("sans_assainissement: entrée | tarif=%s", resumer(tarif))
     periodes = tuple(
         replace(p, services=tuple(s for s in p.services if s.code != "assainissement"), factures_types=())
         for p in tarif.periodes
     )
+    _LOGGER.debug("sans_assainissement: sortie")
     return replace(tarif, periodes=periodes)
 
 
@@ -458,9 +566,11 @@ def prolonger(tarif: Tarif, du: date, au: date) -> tuple[Tarif, bool]:
     délibération de l'année n'est pas encore saisie, on garde le dernier tarif connu.
     Renvoie aussi ``True`` si ``[du, au[`` sort des dates connues.
     """
+    _LOGGER.debug("prolonger: entrée | tarif=%s, du=%s, au=%s", resumer(tarif), resumer(du), resumer(au))
     periodes = list(tarif.periodes)
     premier, dernier = periodes[0], periodes[-1]
     hors = du < premier.debut or (dernier.fin is not None and au - timedelta(days=1) > dernier.fin)
     periodes[0] = replace(premier, debut=min(du, premier.debut))
     periodes[-1] = replace(periodes[-1], fin=None)
+    _LOGGER.debug("prolonger: sortie")
     return replace(tarif, periodes=tuple(periodes)), hors

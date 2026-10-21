@@ -45,10 +45,12 @@ def test_notes_de_la_version_du_manifest(capsys) -> None:
     assert "## [" not in sortie  # une seule section, sans son titre
 
 
-def test_tag_different_du_manifest(capsys) -> None:
+def test_tag_different_du_manifest(capsys, journal_loguru) -> None:
     assert publication.main(["notes", "v9.9.9"]) == 1
-    assert "manifest.json" in capsys.readouterr().err
+    assert any("manifest.json" in m for m in journal_loguru)
+    assert capsys.readouterr().out == ""  # rien dans notes.md
     assert publication.main(["notes"]) == 2
+    assert "Usage" in capsys.readouterr().err
 
 
 def test_version_absente_du_journal() -> None:
@@ -60,7 +62,8 @@ def test_version_absente_du_journal() -> None:
         publication.notes("0.3.0", journal)
 
 
-def test_version_absente_du_vrai_journal(monkeypatch, capsys) -> None:
+def test_version_absente_du_vrai_journal(monkeypatch, capsys, journal_loguru) -> None:
     monkeypatch.setattr(publication, "version_manifest", lambda: "0.0.1")
     assert publication.main(["notes", "v0.0.1"]) == 1
-    assert "absente" in capsys.readouterr().err
+    assert any("absente" in m for m in journal_loguru)
+    assert capsys.readouterr().out == ""

@@ -22,11 +22,24 @@ Le moteur vit dans ``custom_components/tarifeau/`` et non dans un paquet
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from itertools import pairwise
 from typing import TYPE_CHECKING
+
+_LOGGER = logging.getLogger(__name__)
+
+try:
+    from .journal import resumer
+except ImportError as err:  # module chargé seul, hors paquet (scripts, test sans Home Assistant)
+    _LOGGER.debug("hors paquet, résumé du journal réduit au type : %s", err)
+
+    def resumer(valeur: object) -> str:
+        """Repli hors paquet : le type seul, jamais la valeur."""
+        return f"<{type(valeur).__name__}>"
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from .modele import Periode, Service, Tarif
@@ -54,7 +67,13 @@ def consommation(ancien_index: Decimal | int | str, nouvel_index: Decimal | int 
     Si l'index revient en arrière, on considère que le compteur a été remplacé : le volume
     est alors celui du nouveau compteur, soit son index (il part de zéro).
     """
+    _LOGGER.debug(
+        "consommation: entrée | ancien_index=%s, nouvel_index=%s",
+        resumer(ancien_index),
+        resumer(nouvel_index),
+    )
     ancien, nouveau = Decimal(str(ancien_index)), Decimal(str(nouvel_index))
+    _LOGGER.debug("consommation: sortie")
     return nouveau - ancien if nouveau >= ancien else max(nouveau, ZERO)
 
 
@@ -106,8 +125,11 @@ class Facture:
     @property
     def prix_moyen_ttc(self) -> Decimal | None:
         """Total TTC / volume, en €/m³ à 4 décimales, abonnements compris. ``None`` si aucun volume."""
+        _LOGGER.debug("Facture.prix_moyen_ttc: entrée")
         if not self.volume:
+            _LOGGER.debug("Facture.prix_moyen_ttc: sortie | None")
             return None
+        _LOGGER.debug("Facture.prix_moyen_ttc: sortie")
         return arrondi_euros(sum((s.ttc for s in self.services), ZERO) / self.volume * CENT) / CENT
 
 
@@ -126,9 +148,19 @@ class Morceau:
 
 def decouper(tarif: Tarif, du: date, au: date, volume: Decimal, cumul_annee: Decimal = ZERO) -> list[Morceau]:
     """Découpe ``[du, au[`` au 1er janvier et aux changements de tarif (voir l'en-tête du module)."""
+    _LOGGER.debug(
+        "decouper: entrée | tarif=%s, du=%s, au=%s, volume=%s, cumul_annee=%s",
+        resumer(tarif),
+        resumer(du),
+        resumer(au),
+        resumer(volume),
+        resumer(cumul_annee),
+    )
     if au <= du:
+        _LOGGER.debug("decouper: sortie par ValueError")
         raise ValueError("la fin de la période doit être après son début")
     if volume < 0 or cumul_annee < 0:
+        _LOGGER.debug("decouper: sortie par ValueError")
         raise ValueError("volume négatif")
     coupures = {du, au}
     coupures |= {date(a, 1, 1) for a in range(du.year + 1, au.year + 1)}
@@ -153,10 +185,12 @@ def decouper(tarif: Tarif, du: date, au: date, volume: Decimal, cumul_annee: Dec
             depuis, facteur = cumul, Decimal(1)
         morceaux.append(Morceau(a, b, tarif.periode_au(a), v, depuis, facteur, fraction))
         cumul += v
+    _LOGGER.debug("decouper: sortie | %s", resumer(morceaux))
     return morceaux
 
 
 def _lignes(service: Service, morceau: Morceau) -> list[Ligne]:
+    _LOGGER.debug("_lignes: entrée | service=%s, morceau=%s", resumer(service), resumer(morceau))
     lignes = [
         Ligne(
             service.code,
@@ -186,10 +220,12 @@ def _lignes(service: Service, morceau: Morceau) -> list[Ligne]:
                         morceau.au,
                     )
                 )
+    _LOGGER.debug("_lignes: sortie | %s", resumer(lignes))
     return lignes
 
 
 def _facture(morceaux: list[Morceau], volume: Decimal) -> Facture:
+    _LOGGER.debug("_facture: entrée | morceaux=%s, volume=%s", resumer(morceaux), resumer(volume))
     lignes: list[Ligne] = []
     totaux: dict[str, list[Decimal]] = {}  # service → [HT, TVA, taux]
     for morceau in morceaux:
@@ -202,6 +238,7 @@ def _facture(morceaux: list[Morceau], volume: Decimal) -> Facture:
             total[2] = service.tva
             lignes += lignes_service
     services = tuple(TotalService(code, ht, tva, taux) for code, (ht, tva, taux) in totaux.items())
+    _LOGGER.debug("_facture: sortie")
     return Facture(tuple(lignes), services, volume)
 
 
@@ -217,15 +254,29 @@ def facture_periode(
     ``cumul_annee`` : m³ déjà facturés depuis le 1er janvier de l'année de ``du``
     (tranches ``cumul_annuel`` seulement).
     """
+    _LOGGER.debug(
+        "facture_periode: entrée | tarif=%s, du=%s, au=%s, volume_m3=%s, cumul_annee=%s",
+        resumer(tarif),
+        resumer(du),
+        resumer(au),
+        resumer(volume_m3),
+        resumer(cumul_annee),
+    )
     volume = Decimal(str(volume_m3))
+    _LOGGER.debug("facture_periode: sortie")
     return _facture(decouper(tarif, du, au, volume, Decimal(str(cumul_annee))), volume)
 
 
 def facture_sur_un_an(periode: Periode, volume_m3: Decimal | int | str) -> Facture:
     """Facture d'une année complète au tarif ``periode``, pour vérifier une facture type (120 m³)."""
+    _LOGGER.debug(
+        "facture_sur_un_an: entrée | periode=%s, volume_m3=%s", resumer(periode), resumer(volume_m3)
+    )
     volume = Decimal(str(volume_m3))
     if volume < 0:
+        _LOGGER.debug("facture_sur_un_an: sortie par ValueError")
         raise ValueError("volume négatif")
+    _LOGGER.debug("facture_sur_un_an: sortie")
     return _facture(
         [Morceau(periode.debut, periode.debut, periode, volume, ZERO, Decimal(1), Decimal(1))], volume
     )
@@ -248,6 +299,13 @@ def prix_marginal(
     Pour des tranches ``prorata``, passer le volume depuis le début de la facture, et
     ``facteur_seuils`` = jours de la facture / jours de l'année.
     """
+    _LOGGER.debug(
+        "prix_marginal: entrée | tarif=%s, jour=%s, cumul_annee=%s, facteur_seuils=%s",
+        resumer(tarif),
+        resumer(jour),
+        resumer(cumul_annee),
+        resumer(facteur_seuils),
+    )
     cumul, facteur = Decimal(str(cumul_annee)), Decimal(str(facteur_seuils))
     prix, tranche, restant = ZERO, 0, None
     for service in tarif.periode_au(jour).services:
@@ -257,4 +315,5 @@ def prix_marginal(
             tranche = max(tranche, indice)
             if reste is not None:
                 restant = reste if restant is None else min(restant, reste)
+    _LOGGER.debug("prix_marginal: sortie")
     return Marginal(prix, tranche + 1, restant)

@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.tarifeau.config_flow import _capteur_index_par_defaut
 from custom_components.tarifeau.const import (
     CONF_ASSAINISSEMENT,
     CONF_DATE_RELEVE,
@@ -38,6 +39,36 @@ async def _jusqua_tarif(hass: HomeAssistant, nom: str = "Maison", index: str = I
     return await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_NOM: nom, CONF_INDEX: index}
     )
+
+
+async def test_capteur_wmbus_propose_par_defaut(hass: HomeAssistant) -> None:
+    """L'index d'Esphome-Compteur-wmbus est pré-choisi s'il est seul candidat (issue #43)."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+    cle = next(k for k in result["data_schema"].schema if k.schema == CONF_INDEX)
+    assert callable(cle.default) and cle.default() == INDEX
+
+
+async def test_capteur_wmbus_ambigu_pas_de_defaut(hass: HomeAssistant) -> None:
+    """Deux capteurs « volume total » : aucun n'est imposé par défaut."""
+    hass.states.async_set(
+        "sensor.deuxieme_esp_compteur_eau_volume_total",
+        "12",
+        {"unit_of_measurement": "m³", "state_class": "total_increasing"},
+    )
+    assert _capteur_index_par_defaut(hass) is None
+
+
+async def test_capteur_sans_nom_wmbus_pas_de_defaut(hass: HomeAssistant) -> None:
+    """Un capteur d'index valide mais sans lien avec le compteur wM-Bus n'est pas pré-choisi."""
+    hass.states.async_set(INDEX, "123.456")  # remplace : plus d'attributs → candidat invalide
+    hass.states.async_set(
+        "sensor.mon_index_eau",
+        "99",
+        {"unit_of_measurement": "m³", "state_class": "total_increasing"},
+    )
+    assert _capteur_index_par_defaut(hass) is None
 
 
 async def test_configuration_avec_prereglage(hass: HomeAssistant) -> None:

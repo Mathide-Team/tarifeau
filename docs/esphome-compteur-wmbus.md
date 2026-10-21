@@ -10,10 +10,10 @@ Paramètres → Appareils et services → Ajouter une intégration → **tarifea
 
 | Compteur | Capteur d'index à choisir | Nom de la facture conseillé |
 |---|---|---|
-| Le tien | « Compteur eau - Volume total » (`sensor.compteur_eau_lora_compteur_eau_volume_total`) | Facture d'eau |
+| Le tien | « Compteur eau - Volume total » (`sensor.compteur_eau_lora_compteur_eau_volume_total`) — proposé par défaut s'il est détecté | Facture d'eau |
 | Voisin « Dupont » | « Dupont - Index » (`sensor.compteur_eau_lora_dupont_index`) | Dupont |
 
-Les index de l'ESP sont en m³, en `total_increasing` : ils conviennent tels quels. Choisis ensuite le préréglage de ta collectivité (Grand Besançon, Grand Belfort…), puis la date et l'index de la dernière facture.
+Les index de l'ESP sont en m³, en `total_increasing` : ils conviennent tels quels. Si le capteur « Volume total » de ton compteur est présent (et lui seul), il est déjà pré-choisi dans le formulaire. Choisis ensuite le préréglage de ta collectivité (Grand Besançon, Grand Belfort…), puis la date et l'index de la dernière facture.
 
 ## 2. Tableau de bord Énergie
 

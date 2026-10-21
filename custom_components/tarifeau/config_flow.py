@@ -79,6 +79,29 @@ def _verifier_capteur(hass: HomeAssistant, entity_id: str) -> str | None:
     return None
 
 
+def _capteur_index_par_defaut(hass: HomeAssistant) -> str | None:
+    """Capteur d'index à proposer par défaut, s'il est identifiable sans ambiguïté.
+
+    [Esphome-Compteur-wmbus](https://github.com/Mathilde-Team/Esphome-Compteur-wmbus)
+    expose l'index du compteur de la maison sous « Compteur eau - Volume total »
+    (configuration par défaut `compteur-eau-lora`, entité
+    `sensor.compteur_eau_lora_compteur_eau_volume_total`). S'il est présent —
+    et lui seul —, il devient la proposition par défaut (issue #43).
+    """
+    candidats: list[str] = []
+    for etat in hass.states.async_all("sensor"):
+        if _verifier_capteur(hass, etat.entity_id) is not None:
+            continue
+        nom = etat.entity_id.split(".", 1)[1]
+        if not nom.endswith("volume_total"):
+            continue
+        if nom.endswith("compteur_eau_volume_total") or etat.attributes.get("friendly_name") == (
+            "Compteur eau - Volume total"
+        ):
+            candidats.append(etat.entity_id)
+    return candidats[0] if len(candidats) == 1 else None
+
+
 async def _noms_prereglages(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
     """Préréglages fournis, puis tarifs personnels de ``<config>/tarifeau/`` (même invalides, signalés)."""
 
@@ -394,8 +417,8 @@ class TarifeauConfigFlow(_EtapesTarif, ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_NOM, default=NOM_PAR_DEFAUT): str,
-                vol.Required(CONF_INDEX): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
+                vol.Required(CONF_INDEX, default=_capteur_index_par_defaut(self.hass)): (
+                    selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor"))
                 ),
             }
         )

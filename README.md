@@ -14,7 +14,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 
 ## Installation (HACS)
 
-> Première version `v0.1.0` en préparation (issue #10) : voir le [journal des versions](CHANGELOG.md). Home Assistant 2026.3 ou plus récent.
+> Dernière version : `v0.2.0`, voir le [journal des versions](CHANGELOG.md). Home Assistant 2026.3 ou plus récent.
 
 1. HACS → menu ⋮ → **Dépôts personnalisés** → `https://github.com/Mathilde-Team/tarifeau`, catégorie **Intégration**.
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).

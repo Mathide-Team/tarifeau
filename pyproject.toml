@@ -1,6 +1,6 @@
 [project]
 name = "tarifeau"
-version = "0.1.0"
+version = "0.2.0"
 description = "Intégration Home Assistant : facture d'eau française calculée d'après la consommation réelle"
 requires-python = ">=3.13.2,<3.14"
 license = "MIT"

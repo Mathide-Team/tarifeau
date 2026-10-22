@@ -6,6 +6,7 @@ import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -143,6 +144,83 @@ async def test_capteur_sans_nom_wmbus_pas_de_defaut(hass: HomeAssistant) -> None
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     assert _defaut_capteur(result) is None
     assert _capteur_index_par_defaut(hass) is None
+
+
+def _appareil_wmbus(
+    hass: HomeAssistant,
+    nom: str = "compteur-eau-lora",
+    fabricant: str = "mathilde-team",
+    modele: str = "compteur-eau-wmbus",
+) -> str:
+    """Appareil ESPHome tel qu'inscrit par HA avec ``esphome: project:`` (Esphome-Compteur-wmbus#47)."""
+    entree = MockConfigEntry(domain="esphome", title=nom)
+    entree.add_to_hass(hass)
+    return (
+        dr.async_get(hass)
+        .async_get_or_create(
+            config_entry_id=entree.entry_id,
+            connections={(dr.CONNECTION_NETWORK_MAC, f"aa:bb:cc:dd:ee:{len(nom):02x}")},
+            name=nom,
+            manufacturer=fabricant,
+            model=modele,
+        )
+        .id
+    )
+
+
+def _capteur_sur_appareil(hass: HomeAssistant, appareil: str, objet: str, original_name: str) -> str:
+    entree = er.async_get(hass).async_get_or_create(
+        "sensor",
+        "esphome",
+        f"unique-{objet}",
+        suggested_object_id=objet,
+        original_name=original_name,
+        device_id=appareil,
+    )
+    hass.states.async_set(
+        entree.entity_id, "1.5", {"unit_of_measurement": "m³", "state_class": "total_increasing"}
+    )
+    return entree.entity_id
+
+
+async def test_marqueur_wmbus_prime_sur_les_conventions(hass: HomeAssistant) -> None:
+    """Appareil marqué : son index est proposé même renommé et même avec un autre candidat par convention."""
+    appareil = _appareil_wmbus(hass)
+    maison = _capteur_sur_appareil(hass, appareil, "index_maison", "Compteur eau - Volume total")
+    _capteur_sur_appareil(hass, appareil, "dupont_index", "Dupont - Index")
+    _candidat_wmbus(hass, entity_id="sensor.autre_esp_compteur_eau_volume_total")  # ambigu sans marqueur
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    assert _defaut_capteur(result) == maison
+    assert _capteur_index_par_defaut(hass) == maison
+
+
+@pytest.mark.parametrize(
+    ("objet", "original_name"),
+    [
+        ("dupont_volume_total", "Dupont - Index"),
+        ("martin_index", "Compteur eau - Volume total (Martin)"),
+    ],
+)
+async def test_marqueur_wmbus_voisins_jamais_proposes(
+    hass: HomeAssistant, objet: str, original_name: str
+) -> None:
+    """Sur l'appareil marqué, un index de voisin n'est jamais candidat, même s'il suit les conventions."""
+    _capteur_sur_appareil(hass, _appareil_wmbus(hass), objet, original_name)
+    assert _capteur_index_par_defaut(hass) is None
+
+
+async def test_marqueur_wmbus_deux_appareils_pas_de_defaut(hass: HomeAssistant) -> None:
+    """Deux appareils marqués (deux maisons) : aucun index n'est imposé."""
+    for nom in ("compteur-eau-lora", "compteur-eau-garage"):
+        _capteur_sur_appareil(hass, _appareil_wmbus(hass, nom), f"{nom}_index", "Compteur eau - Volume total")
+    assert _capteur_index_par_defaut(hass) is None
+
+
+async def test_appareil_d_un_autre_modele_conventions(hass: HomeAssistant) -> None:
+    """Appareil ESPHome d'un autre projet : repli sur les conventions de nommage."""
+    appareil = _appareil_wmbus(hass, modele="autre-projet")
+    capteur = _capteur_sur_appareil(hass, appareil, "cave_compteur_eau_volume_total", "Volume")
+    assert _capteur_index_par_defaut(hass) == capteur
 
 
 async def test_configuration_avec_prereglage(hass: HomeAssistant) -> None:

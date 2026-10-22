@@ -10,10 +10,10 @@ Paramètres → Appareils et services → Ajouter une intégration → **tarifea
 
 | Compteur | Capteur d'index à choisir | Nom de la facture conseillé |
 |---|---|---|
-| Le tien | « Compteur eau - Volume total » (`sensor.compteur_eau_lora_compteur_eau_volume_total`) | Facture d'eau |
+| Le tien | « Compteur eau - Volume total » (`sensor.compteur_eau_lora_compteur_eau_volume_total`) — proposé par défaut s'il est détecté | Facture d'eau |
 | Voisin « Dupont » | « Dupont - Index » (`sensor.compteur_eau_lora_dupont_index`) | Dupont |
 
-Les index de l'ESP sont en m³, en `total_increasing` : ils conviennent tels quels. Choisis ensuite le préréglage de ta collectivité (Grand Besançon, Grand Belfort…), puis la date et l'index de la dernière facture.
+Les index de l'ESP sont en m³, en `total_increasing` : ils conviennent tels quels. Si le capteur « Volume total » de ton compteur est présent (et lui seul), il est déjà pré-choisi dans le formulaire. Il est reconnu par le marqueur stable de l'ESP : appareil de fabricant `mathilde-team` et de modèle `compteur-eau-wmbus`, et capteur de nom d'origine « Compteur eau - Volume total » ([Esphome-Compteur-wmbus#47](https://github.com/Mathilde-Team/Esphome-Compteur-wmbus/issues/47)). Il reste reconnu si tu as renommé l'appareil ou l'entité, et les index des voisins ne sont jamais proposés. Un ESP flashé avant ce marqueur reste reconnu par son nom. Choisis ensuite le préréglage de ta collectivité (Grand Besançon, Grand Belfort…), puis la date et l'index de la dernière facture.
 
 ## 2. Tableau de bord Énergie
 
@@ -55,7 +55,7 @@ Les coûts de l'ESP restent sans abonnement. Pour le montant complet de la factu
 Le générateur fait une section par facture :
 
 ```bash
-uv run --with pyyaml python scripts/generer_tableau_de_bord.py "Facture d'eau" "Dupont" -o factures.yaml
+uv run --with pyyaml --with loguru python scripts/generer_tableau_de_bord.py "Facture d'eau" "Dupont" -o factures.yaml
 ```
 
 Puis Paramètres → Tableaux de bord → Ajouter → à partir de zéro → ⋮ → Éditeur de configuration brute, et colle le fichier.

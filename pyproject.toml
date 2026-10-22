@@ -1,6 +1,6 @@
 [project]
 name = "tarifeau"
-version = "0.1.0"
+version = "0.2.0"
 description = "Intégration Home Assistant : facture d'eau française calculée d'après la consommation réelle"
 requires-python = ">=3.13.2,<3.14"
 license = "MIT"
@@ -9,6 +9,7 @@ license = "MIT"
 # Versions figées (socle) : à monter volontairement.
 test = [
     "pytest-homeassistant-custom-component==0.13.316",  # Home Assistant 2026.2.3, Python 3.13
+    "loguru==0.7.3",  # scripts/ (SOCLE §8) ; même version que --with dans release.yml
 ]
 lint = ["ruff==0.17.1"]
 
@@ -26,6 +27,13 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.coverage.run]
 source = ["custom_components/tarifeau"]
+branch = true
+
+[tool.coverage.report]
+# Seuil bloquant de l'équipe (Mathilde-Team/.github#9) : lignes + branches.
+# Appliqué par `pytest --cov` (job Qualité de ci.yml).
+fail_under = 95
+show_missing = true
 
 [tool.uv]
 package = false  # intégration HA, pas un paquet Python publié

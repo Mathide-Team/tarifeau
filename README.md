@@ -14,7 +14,7 @@ tarifeau complète ces intégrations sans les refaire. Il peut se servir de Hydr
 
 ## Installation (HACS)
 
-> Première version `v0.1.0` en préparation (issue #10) : voir le [journal des versions](CHANGELOG.md). Home Assistant 2026.3 ou plus récent.
+> Dernière version : `v0.2.0`, voir le [journal des versions](CHANGELOG.md). Home Assistant 2026.3 ou plus récent.
 
 1. HACS → menu ⋮ → **Dépôts personnalisés** → `https://github.com/Mathilde-Team/tarifeau`, catégorie **Intégration**.
 2. Installer **tarifeau**, puis redémarrer Home Assistant (2026.3 ou plus récent, pour l'icône fournie dans `brand/`).
@@ -102,7 +102,7 @@ Pour un autre canal (application mobile, e-mail…), il suffit d'une automatisat
 Il suppose une entrée nommée « Facture d'eau ». Les capteurs ont des identifiants fixes, quelle que soit la langue : `sensor.<nom>_<clé>`, par exemple `sensor.facture_d_eau_prix_marginal`. Pour d'autres noms, ou une section par compteur :
 
 ```bash
-uv run --with pyyaml python scripts/generer_tableau_de_bord.py "Maison" "Dupont" --max 400 -o mon_tableau.yaml
+uv run --with pyyaml --with loguru python scripts/generer_tableau_de_bord.py "Maison" "Dupont" --max 400 -o mon_tableau.yaml
 ```
 
 Puis Paramètres → Tableaux de bord → Ajouter un tableau de bord → à partir de zéro → ⋮ → Éditeur de configuration brute, et coller le fichier.
@@ -143,6 +143,18 @@ Après une modification d'un fichier déjà utilisé, recharge l'intégration (�
 - **Tarifs annuels** : beaucoup changent au 1er janvier. Tant que le nouveau tarif n'est pas dans le préréglage, le dernier connu est prolongé (attribut `tarif_prolonge`).
 - **Prix moyen** (sources « prix fixe », « entité de prix », « taux de la dernière facture ») : pas de tranches, et l'abonnement est réparti dans le prix au m³.
 - **Hors France** : le modèle de facture (TVA par service, redevances des agences de l'eau) est propre à la France.
+
+## Diagnostic
+
+Pour suivre le calcul pas à pas (entrée et sortie de chaque fonction, exceptions interceptées), activer le journal de debug dans `configuration.yaml` :
+
+```yaml
+logger:
+  logs:
+    custom_components.tarifeau: debug
+```
+
+Les paramètres sont résumés (tailles, clés, types, identifiant et état des capteurs suivis) : le journal ne contient ni objet entier ni valeur de saisie.
 
 ## Comment la facture est calculée
 

@@ -51,9 +51,10 @@ def test_fichier_de_reference_a_jour() -> None:
     )
 
 
-def test_plusieurs_entrees(tmp_path) -> None:
+def test_plusieurs_entrees(tmp_path, journal_loguru) -> None:
     sortie = tmp_path / "t.yaml"
     assert generer.main(["Maison", "Dupont", "--max", "400", "-o", str(sortie)]) == 0
+    assert journal_loguru == [f"{sortie} : 2 section(s)"]
     tableau = yaml.safe_load(sortie.read_text(encoding="utf-8"))
     sections = tableau["views"][0]["sections"]
     assert [s["cards"][0]["heading"] for s in sections] == [

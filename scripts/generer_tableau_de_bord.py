@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Génère la vue « Facture d'eau » (cartes natives) pour une ou plusieurs entrées tarifeau.
 
-    uv run --with pyyaml python scripts/generer_tableau_de_bord.py                      # « Facture d'eau »
-    uv run --with pyyaml python scripts/generer_tableau_de_bord.py "Maison" "Dupont" --max 400
+    uv run --with pyyaml --with loguru python scripts/generer_tableau_de_bord.py                      # « Facture d'eau »
+    uv run --with pyyaml --with loguru python scripts/generer_tableau_de_bord.py "Maison" "Dupont" --max 400
 
 Une section par entrée (par compteur), dans l'ordre donné. Le nom est celui de l'entrée
 (titre dans Paramètres → Appareils et services) : les capteurs s'appellent
@@ -21,6 +21,7 @@ import unicodedata
 from pathlib import Path
 
 import yaml
+from loguru import logger
 
 RACINE = Path(__file__).resolve().parent.parent
 SORTIE = RACINE / "dashboard" / "facture_eau.yaml"
@@ -49,7 +50,7 @@ EN_TETE = """\
 # Pour l'ajouter à un tableau existant, colle seulement le contenu de « views: » comme nouvelle vue.
 #
 # Généré par scripts/generer_tableau_de_bord.py ({entrees}). Plusieurs compteurs :
-#   uv run --with pyyaml python scripts/generer_tableau_de_bord.py "Maison" "Dupont" -o mon_tableau.yaml
+#   uv run --with pyyaml --with loguru python scripts/generer_tableau_de_bord.py "Maison" "Dupont" -o mon_tableau.yaml
 """
 
 # Détail ligne par ligne, lu dans les attributs du capteur « Coût depuis la dernière relève ».
@@ -80,12 +81,15 @@ Tarif : [{{ state_attr(c, 'tarif') }}]({{ state_attr(c, 'source') }})
 
 def slug(nom: str) -> str:
     """Comme homeassistant.util.slugify pour les noms courants : « Facture d'eau » → facture_d_eau."""
+    logger.debug("slug: entrée | nom={!r:.80}", nom)
     ascii_ = unicodedata.normalize("NFKD", nom).encode("ascii", "ignore").decode()
+    logger.debug("slug: sortie")
     return re.sub(r"[^a-z0-9]+", "_", ascii_.lower()).strip("_") or "facture_d_eau"
 
 
 def sections(nom: str, maximum: int) -> list[dict]:
     """Trois sections par entrée : résumé (jauge et prix), coûts (statistiques), détail."""
+    logger.debug("sections: entrée | nom={!r:.80}, maximum={!r:.80}", nom, maximum)
     e = {cle: f"sensor.{slug(nom)}_{cle}" for cle in CLES}
     resume = {
         "type": "grid",
@@ -195,6 +199,7 @@ def sections(nom: str, maximum: int) -> list[dict]:
             {"type": "markdown", "content": DETAIL.replace("ENTITE", e["cout_releve"])},
         ],
     }
+    logger.debug("sections: sortie")
     return [resume, couts, detail]
 
 
@@ -220,7 +225,9 @@ class _Dumper(yaml.SafeDumper):
 
 
 def _texte(dumper: yaml.SafeDumper, valeur: str) -> yaml.ScalarNode:
+    logger.debug("_texte: entrée | dumper={!r:.80}, valeur={!r:.80}", dumper, valeur)
     style = "|" if "\n" in valeur else None
+    logger.debug("_texte: sortie")
     return dumper.represent_scalar("tag:yaml.org,2002:str", valeur, style=style)
 
 
@@ -229,11 +236,14 @@ _Dumper.add_representer(str, _texte)
 
 def en_yaml(noms: list[str], maximum: int) -> str:
     """Texte YAML du tableau, avec son en-tête."""
+    logger.debug("en_yaml: entrée | noms={!r:.80}, maximum={!r:.80}", noms, maximum)
     corps = yaml.dump(tableau(noms, maximum), Dumper=_Dumper, allow_unicode=True, sort_keys=False, width=120)
+    logger.debug("en_yaml: sortie")
     return EN_TETE.format(entrees=", ".join(f"« {n} »" for n in noms)) + corps
 
 
 def main(argv: list[str] | None = None) -> int:
+    logger.debug("main: entrée | argv={!r:.80}", argv)
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("noms", nargs="*", default=[NOM_PAR_DEFAUT], help="noms des entrées tarifeau")
     parser.add_argument("--max", type=int, default=300, help="maximum de la jauge, en € (défaut : 300)")
@@ -243,7 +253,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("deux noms donnent les mêmes identifiants d'entités")
     args.sortie.parent.mkdir(parents=True, exist_ok=True)
     args.sortie.write_text(en_yaml(args.noms, args.max), encoding="utf-8")
-    print(f"{args.sortie} : {len(args.noms)} section(s)")
+    logger.info("{} : {} section(s)", args.sortie, len(args.noms))
     return 0
 
 

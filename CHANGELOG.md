@@ -2,6 +2,14 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Les numéros suivent [SemVer](https://semver.org/lang/fr/), et la version de `manifest.json` est égale au tag.
 
+## [0.2.0] - 2026-10-22
+
+### Ajouté
+- **Journal de debug complet** (#52, SOCLE §8) : chaque fonction de l'intégration trace son entrée (paramètres résumés : tailles, clés, types, jamais un objet entier) et chacune de ses sorties, et chaque exception interceptée est journalisée. Activation : `logger: logs: custom_components.tarifeau: debug`.
+
+### Modifié
+- Scripts (`scripts/`) journalisés avec loguru (sur stderr ; `LOGURU_LEVEL=INFO` pour les seuls messages utiles). Le générateur de tableau de bord se lance avec `uv run --with pyyaml --with loguru`.
+
 ## [0.1.0] - 2026-10-18
 
 Première version.

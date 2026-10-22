@@ -5,7 +5,7 @@
 # Pour l'ajouter à un tableau existant, colle seulement le contenu de « views: » comme nouvelle vue.
 #
 # Généré par scripts/generer_tableau_de_bord.py (« Facture d'eau »). Plusieurs compteurs :
-#   uv run --with pyyaml python scripts/generer_tableau_de_bord.py "Maison" "Dupont" -o mon_tableau.yaml
+#   uv run --with pyyaml --with loguru python scripts/generer_tableau_de_bord.py "Maison" "Dupont" -o mon_tableau.yaml
 title: Facture d'eau
 views:
 - title: Facture d'eau

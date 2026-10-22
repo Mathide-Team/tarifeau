@@ -15,7 +15,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry, selector
+from homeassistant.helpers import device_registry, entity_registry, selector
 
 from .const import (
     CHAMPS_SOURCE,
@@ -92,6 +92,14 @@ def _verifier_capteur(hass: HomeAssistant, entity_id: str) -> str | None:
     return None
 
 
+# Marqueur stable d'Esphome-Compteur-wmbus (README « Marqueur stable pour les
+# intégrations », Esphome-Compteur-wmbus#47) : fabricant et modèle de l'appareil
+# (bloc `esphome: project:`), et nom d'origine du capteur d'index de la maison.
+FABRICANT_WMBUS = "mathilde-team"
+MODELE_WMBUS = "compteur-eau-wmbus"
+NOM_INDEX_WMBUS = "Compteur eau - Volume total"
+
+
 def _capteur_index_par_defaut(hass: HomeAssistant) -> str | None:
     """Capteur d'index à proposer par défaut, s'il est identifiable sans ambiguïté.
 
@@ -99,23 +107,41 @@ def _capteur_index_par_defaut(hass: HomeAssistant) -> str | None:
     expose l'index du compteur de la maison sous « Compteur eau - Volume total »
     (configuration par défaut `compteur-eau-lora`, entité
     `sensor.compteur_eau_lora_compteur_eau_volume_total`). Le capteur n'est
-    proposé que s'il vient de l'intégration ESPHome (registre d'entités),
-    que son nom désigne bien le volume total du compteur d'eau — même
-    renommé, le nom d'origine du registre est conservé — et qu'il est le
-    seul candidat (issue #43).
+    proposé que s'il vient de l'intégration ESPHome (registre d'entités) et
+    qu'il est le seul candidat (issue #43).
+
+    Le marqueur stable prime : sur un appareil de fabricant « mathilde-team »
+    et de modèle « compteur-eau-wmbus », seul le capteur de nom d'origine
+    exactement « Compteur eau - Volume total » est candidat (jamais les index
+    des voisins, quel que soit leur identifiant). À défaut d'appareil marqué
+    (micrologiciel antérieur à Esphome-Compteur-wmbus#47), repli sur les
+    conventions de nommage : identifiant finissant par ``volume_total`` ou nom
+    contenant « compteur eau » et « volume total » — même renommé, le nom
+    d'origine du registre est conservé.
     """
     _LOGGER.debug("_capteur_index_par_defaut: entrée | hass=%s", resumer(hass))
     registre = entity_registry.async_get(hass)
+    appareils = device_registry.async_get(hass)
     # Un capteur déjà suivi par une entrée Tarif-Eau n'est plus proposé :
     # l'ajout d'une seconde facture (voisin) ne doit pas pré-choisir un
     # index qui mènerait à « déjà configuré ».
     deja_suivis = {entree.unique_id for entree in hass.config_entries.async_entries(DOMAIN)}
-    candidats: list[str] = []
+    marques: list[str] = []  # capteurs désignés par le marqueur stable
+    candidats: list[str] = []  # repli : conventions de nommage
     for etat in hass.states.async_all("sensor"):
         if etat.entity_id in deja_suivis or _verifier_capteur(hass, etat.entity_id) is not None:
             continue
         entree = registre.async_get(etat.entity_id)
         if entree is None or entree.platform != "esphome":
+            continue
+        appareil = appareils.async_get(entree.device_id) if entree.device_id else None
+        if appareil is not None and (appareil.manufacturer, appareil.model) == (
+            FABRICANT_WMBUS,
+            MODELE_WMBUS,
+        ):
+            # Appareil marqué : le contrat suffit, les conventions ne s'appliquent pas.
+            if entree.original_name == NOM_INDEX_WMBUS:
+                marques.append(etat.entity_id)
             continue
         nom = etat.entity_id.split(".", 1)[1]
         noms = " ".join(filter(None, [entree.original_name, etat.attributes.get("friendly_name")]))
@@ -123,8 +149,11 @@ def _capteur_index_par_defaut(hass: HomeAssistant) -> str | None:
             "compteur eau" in noms.lower() and "volume total" in noms.lower()
         ):
             candidats.append(etat.entity_id)
-    _LOGGER.debug("_capteur_index_par_defaut: sortie")
-    return candidats[0] if len(candidats) == 1 else None
+    retenus = marques or candidats
+    _LOGGER.debug(
+        "_capteur_index_par_defaut: sortie | marqués=%d, par convention=%d", len(marques), len(candidats)
+    )
+    return retenus[0] if len(retenus) == 1 else None
 
 
 async def _noms_prereglages(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
